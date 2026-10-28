@@ -26,7 +26,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA = Path(os.environ.get("DATA_DIR", ROOT / "data"))
 ALIASES_FILE = ROOT / "scripts" / "aliases.json"
 BASE = "https://www.football-data.co.uk"
-SEASONS_BACK = 3
+SEASONS_BACK = 5
 UA = {"User-Agent": "tendenz-board/2.0 (privates Dashboard)"}
 
 # Takt je Quelle (Stunden)
@@ -47,16 +47,23 @@ ISO2 = {"GER": "DE", "ENG": "GB", "SCO": "GB", "ESP": "ES", "ITA": "IT", "FRA": 
         "POR": "PT", "BEL": "BE", "TUR": "TR", "AUT": "AT"}
 GERMAN = {"AUT", "D1", "D2"}
 
+# oh..ou = Schlussquote (Pinnacle, sonst Schnitt), ph..pu = Pinnacle vor dem Spiel, xh..xu = beste Quote vor dem Spiel
 COLS = ["l", "s", "d", "h", "a", "hg", "ag", "hhg", "hag", "hs", "as", "hst", "ast",
-        "hc", "ac", "hy", "ay", "hr", "ar", "oh", "od", "oa", "oo", "ou"]
-FCOLS = ["l", "d", "t", "h", "a", "oh", "od", "oa", "oo", "ou"]
+        "hc", "ac", "hy", "ay", "hr", "ar", "oh", "od", "oa", "oo", "ou",
+        "ph", "pd", "pa", "po", "pu", "xh", "xd", "xa", "xo", "xu", "hf", "af"]
+# Spielplan: oh..ou = Pinnacle (sonst Schnitt) aktuell, xh..xu = beste aktuelle Quote
+FCOLS = ["l", "d", "t", "h", "a", "oh", "od", "oa", "oo", "ou", "xh", "xd", "xa", "xo", "xu"]
 TEXT = {"l", "s", "d", "h", "a", "t"}
-ODDS = {"oh", "od", "oa", "oo", "ou"}
+import understat
+ODDS = {"oh", "od", "oa", "oo", "ou", "ph", "pd", "pa", "po", "pu", "xh", "xd", "xa", "xo", "xu"}
 ODDS_H = ["PSCH", "AvgCH", "PSH", "AvgH", "B365H"]
 ODDS_D = ["PSCD", "AvgCD", "PSD", "AvgD", "B365D"]
 ODDS_A = ["PSCA", "AvgCA", "PSA", "AvgA", "B365A"]
 ODDS_O = ["PC>2.5", "AvgC>2.5", "P>2.5", "Avg>2.5", "B365>2.5"]
 ODDS_U = ["PC<2.5", "AvgC<2.5", "P<2.5", "Avg<2.5", "B365<2.5"]
+PRE = {"ph": ["PSH", "AvgH"], "pd": ["PSD", "AvgD"], "pa": ["PSA", "AvgA"], "po": ["P>2.5", "Avg>2.5"], "pu": ["P<2.5", "Avg<2.5"]}
+MAX = {"xh": ["MaxH", "BbMxH"], "xd": ["MaxD", "BbMxD"], "xa": ["MaxA", "BbMxA"], "xo": ["Max>2.5", "BbMx>2.5"], "xu": ["Max<2.5", "BbMx<2.5"]}
+MAXC = {"xh": ["MaxCH"], "xd": ["MaxCD"], "xa": ["MaxCA"]}
 
 NOW = dt.datetime.now(dt.timezone.utc)
 TODAY = NOW.date()
@@ -197,6 +204,8 @@ def main_league_rows(code, y):
         "hr": num(df, "HR"), "ar": num(df, "AR"),
         "oh": first(df, ODDS_H), "od": first(df, ODDS_D), "oa": first(df, ODDS_A),
         "oo": first(df, ODDS_O), "ou": first(df, ODDS_U),
+        **{k: first(df, v) for k, v in PRE.items()}, **{k: first(df, v) for k, v in MAX.items()},
+        "hf": num(df, "HF"), "af": num(df, "AF"),
     })
     return to_rows(f, COLS)
 
@@ -218,15 +227,26 @@ def extra_league_rows(code, years):
         "hs": nan, "as": nan, "hst": nan, "ast": nan, "hc": nan, "ac": nan,
         "hy": nan, "ay": nan, "hr": nan, "ar": nan,
         "oh": first(df, ODDS_H), "od": first(df, ODDS_D), "oa": first(df, ODDS_A), "oo": nan, "ou": nan,
+        "ph": nan, "pd": nan, "pa": nan, "po": nan, "pu": nan,
+        "xh": first(df, MAXC["xh"]), "xd": first(df, MAXC["xd"]), "xa": first(df, MAXC["xa"]), "xo": nan, "xu": nan,
+        "hf": nan, "af": nan,
     })
     return to_rows(f, COLS)
 
 
-def fetch_results():
+def fetch_results(old_rows):
+    """Laufende Saison immer neu, abgeschlossene Saisonen nur, wenn sie noch fehlen."""
     years = season_years()
+    have = {}
+    for r in old_rows or []:
+        if len(r) == len(COLS):
+            have.setdefault((r[0], r[1]), []).append(r)
     rows = []
     for code in LEAGUES:
         for y in years:
+            if y != years[-1] and have.get((code, label(y))):
+                rows += have[(code, label(y))]
+                continue
             log(f"Ergebnisse {code} {label(y)}")
             rows += main_league_rows(code, y)
     for code in EXTRA:
@@ -245,7 +265,8 @@ def fetch_fixtures():
                 "l": df["Div"], "d": dates(df["Date"]), "t": df["Time"] if "Time" in df.columns else "",
                 "h": df["HomeTeam"].astype(str).str.strip(), "a": df["AwayTeam"].astype(str).str.strip(),
                 "oh": first(df, ODDS_H), "od": first(df, ODDS_D), "oa": first(df, ODDS_A),
-                "oo": first(df, ODDS_O), "ou": first(df, ODDS_U)}))
+                "oo": first(df, ODDS_O), "ou": first(df, ODDS_U),
+                **{k: first(df, v) for k, v in MAX.items()}}))
     df = get_csv(f"{BASE}/new_league_fixtures.csv")
     if df is not None and "Country" in df.columns:
         for code, (country, _) in EXTRA.items():
@@ -257,7 +278,8 @@ def fetch_fixtures():
                 "l": code, "d": dates(sub["Date"]), "t": sub["Time"] if "Time" in sub.columns else "",
                 "h": sub["Home"].astype(str).str.strip(), "a": sub["Away"].astype(str).str.strip(),
                 "oh": first(sub, ODDS_H), "od": first(sub, ODDS_D), "oa": first(sub, ODDS_A),
-                "oo": nan, "ou": nan}))
+                "oo": nan, "ou": nan, "xh": first(sub, ["MaxH", "MaxCH"]), "xd": first(sub, ["MaxD", "MaxCD"]),
+                "xa": first(sub, ["MaxA", "MaxCA"]), "xo": nan, "xu": nan}))
     if not frames:
         return None
     rows = []
@@ -294,9 +316,9 @@ def update_odds_history(fixtures):
 
 
 # ---------- ClubElo ----------
-def match_name(team, league, candidates):
-    """Ordnet einen football-data-Namen einem Namen der anderen Quelle zu."""
-    forced = alias(team, "elo")
+def match_name(team, league, candidates, field="elo"):
+    """Ordnet einen football-data-Namen einem Namen der anderen Quelle zu (field: elo oder us)."""
+    forced = alias(team, field)
     if forced and forced in candidates:
         return forced
     names = [team] + [x for x in [alias(team, "search"), forced] if x]
@@ -498,8 +520,12 @@ def main():
 
     # 1) Ergebnisse (alle 3 Stunden)
     matches = football["matches"] if football else []
-    if not football or hours_since(meta.get("results")) >= EVERY["results"]:
-        fresh = fetch_results()
+    fcols_old = (football or {}).get("cols") or []
+    if fcols_old[:len(COLS)] == COLS:
+        matches = [r[:len(COLS)] for r in matches]               # angehängte xG-Spalten wieder abnehmen
+    outdated = bool(matches) and (fcols_old[:len(COLS)] != COLS)  # altes Datenformat
+    if not football or outdated or hours_since(meta.get("results")) >= EVERY["results"]:
+        fresh = fetch_results(matches)
         if fresh:
             matches = fresh
             meta["results"] = NOW.isoformat(timespec="minutes")
@@ -515,15 +541,32 @@ def main():
     else:
         meta["fixtures"] = NOW.isoformat(timespec="minutes")
 
+    # xG: Understat für die großen fünf Ligen, Schuss-xG für den Rest
+    cols_out, rows_out, xg_info = COLS, matches, {}
+    try:
+        cache = understat.update_cache(DATA, season_years(), NOW, hours_since, match_name)
+        rows_out, cols_out, xg_unmatched, coef = understat.attach(matches, COLS, cache, match_name)
+        xg_info = {"unmatched": xg_unmatched, "shot_model": {k: [round(a, 3), round(b, 3)] for k, (a, b) in coef.items()}}
+        log(f"xG: {sum(1 for r in rows_out if r[-1] == 1)} Spiele mit Understat-xG, {sum(1 for r in rows_out if r[-1] == 0)} mit Schuss-xG")
+    except Exception as e:
+        log(f"xG übersprungen: {e}")
+
     names = dict(LEAGUES)
     names.update({k: v[1] for k, v in EXTRA.items()})
     save_json(DATA / "football.json", {
         "updated": meta.get("fixtures") or meta.get("results"), "results_updated": meta.get("results"),
-        "source": "football-data.co.uk", "leagues": names,
-        "cols": COLS, "matches": matches, "fcols": FCOLS, "fixtures": fixtures})
+        "source": "football-data.co.uk, understat.com", "leagues": names, "xg": xg_info,
+        "cols": cols_out, "matches": rows_out, "fcols": FCOLS, "fixtures": fixtures})
     log(f"{len(matches)} Spiele, {len(fixtures)} kommende Partien")
 
-    # 3) Zusatzquellen, jede für sich abgesichert
+    # 3) Rating-Modell (Python, siehe model.py)
+    try:
+        import model
+        model.run(rows_out, cols_out, fixtures, FCOLS, DATA, meta, NOW)
+    except Exception as e:
+        log(f"Modell übersprungen: {e}")
+
+    # 4) Zusatzquellen, jede für sich abgesichert
     steps = [("Quotenverlauf", lambda: update_odds_history(fixtures))]
     if hours_since(meta.get("elo")) >= EVERY["elo"]:
         team_keys = {(m[0], m[3]) for m in matches} | {(m[0], m[4]) for m in matches}
@@ -535,6 +578,13 @@ def main():
             fn()
         except Exception as e:
             log(f"{name} übersprungen: {e}")
+
+    # 5) Tennis (eigene Quellen und eigenes Modell, siehe tennis.py)
+    try:
+        import tennis
+        tennis.run(DATA, NOW, meta, hours_since)
+    except Exception as e:
+        log(f"Tennis übersprungen: {e}")
 
     meta["run"] = NOW.isoformat(timespec="minutes")
     save_json(DATA / "meta.json", meta)

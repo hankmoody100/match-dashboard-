@@ -1,78 +1,348 @@
 {
-  "_hinweis": "Zuordnung von football-data-Namen. search = Name für die Newssuche, elo = Name bei clubelo.com, city = Ort fürs Wetter. Alles optional.",
-  "Bayern Munich": {"search": "FC Bayern", "elo": "Bayern", "city": "München"},
-  "Dortmund": {"search": "Borussia Dortmund", "city": "Dortmund"},
-  "Leverkusen": {"search": "Bayer Leverkusen", "city": "Leverkusen"},
-  "Ein Frankfurt": {"search": "Eintracht Frankfurt", "elo": "Frankfurt", "city": "Frankfurt am Main"},
-  "M'gladbach": {"search": "Borussia Mönchengladbach", "elo": "Gladbach", "city": "Mönchengladbach"},
-  "FC Koln": {"search": "1. FC Köln", "elo": "Koeln", "city": "Köln"},
-  "RB Leipzig": {"search": "RB Leipzig", "city": "Leipzig"},
-  "Stuttgart": {"search": "VfB Stuttgart", "city": "Stuttgart"},
-  "Wolfsburg": {"search": "VfL Wolfsburg", "city": "Wolfsburg"},
-  "Hoffenheim": {"search": "TSG Hoffenheim", "city": "Sinsheim"},
-  "Werder Bremen": {"search": "Werder Bremen", "city": "Bremen"},
-  "Union Berlin": {"search": "Union Berlin", "city": "Berlin"},
-  "Hertha": {"search": "Hertha BSC", "city": "Berlin"},
-  "St Pauli": {"search": "FC St. Pauli", "city": "Hamburg"},
-  "Hamburg": {"search": "Hamburger SV", "city": "Hamburg"},
-  "Mainz": {"search": "Mainz 05", "city": "Mainz"},
-  "Freiburg": {"search": "SC Freiburg", "city": "Freiburg im Breisgau"},
-  "Augsburg": {"search": "FC Augsburg", "city": "Augsburg"},
-  "Heidenheim": {"search": "1. FC Heidenheim", "city": "Heidenheim an der Brenz"},
-  "Schalke 04": {"search": "Schalke 04", "city": "Gelsenkirchen"},
-  "Salzburg": {"search": "Red Bull Salzburg", "city": "Salzburg"},
-  "Rapid Vienna": {"search": "Rapid Wien", "elo": "Rapid Wien", "city": "Wien"},
-  "Austria Vienna": {"search": "Austria Wien", "elo": "Austria Wien", "city": "Wien"},
-  "Sturm Graz": {"search": "SK Sturm Graz", "city": "Graz"},
-  "LASK": {"search": "LASK", "city": "Linz"},
-  "Wolfsberger AC": {"search": "Wolfsberger AC", "city": "Wolfsberg"},
-  "Tirol": {"search": "WSG Tirol", "city": "Innsbruck"},
-  "Altach": {"search": "SCR Altach", "city": "Altach"},
-  "Hartberg": {"search": "TSV Hartberg", "city": "Hartberg"},
-  "Blau-Weiss Linz": {"search": "Blau-Weiß Linz", "city": "Linz"},
-  "Grazer AK": {"search": "Grazer AK", "city": "Graz"},
-  "Ried": {"search": "SV Ried", "city": "Ried im Innkreis"},
-  "Man City": {"search": "Manchester City", "city": "Manchester"},
-  "Man United": {"search": "Manchester United", "city": "Manchester"},
-  "Nott'm Forest": {"search": "Nottingham Forest", "elo": "Forest", "city": "Nottingham"},
-  "Newcastle": {"search": "Newcastle United", "city": "Newcastle upon Tyne"},
-  "Tottenham": {"search": "Tottenham Hotspur", "city": "London"},
-  "West Ham": {"search": "West Ham United", "city": "London"},
-  "Arsenal": {"search": "Arsenal", "city": "London"},
-  "Chelsea": {"search": "Chelsea FC", "city": "London"},
-  "Crystal Palace": {"search": "Crystal Palace", "city": "London"},
-  "Fulham": {"search": "Fulham FC", "city": "London"},
-  "Brentford": {"search": "Brentford FC", "city": "London"},
-  "Wolves": {"search": "Wolverhampton Wanderers", "city": "Wolverhampton"},
-  "Brighton": {"search": "Brighton & Hove Albion", "city": "Brighton"},
-  "Ath Madrid": {"search": "Atlético Madrid", "elo": "Atletico", "city": "Madrid"},
-  "Ath Bilbao": {"search": "Athletic Bilbao", "elo": "Bilbao", "city": "Bilbao"},
-  "Real Madrid": {"search": "Real Madrid", "city": "Madrid"},
-  "Barcelona": {"search": "FC Barcelona", "city": "Barcelona"},
-  "Sociedad": {"search": "Real Sociedad", "city": "San Sebastián"},
-  "Betis": {"search": "Real Betis", "city": "Sevilla"},
-  "Vallecano": {"search": "Rayo Vallecano", "city": "Madrid"},
-  "Celta": {"search": "Celta Vigo", "city": "Vigo"},
-  "Espanol": {"search": "Espanyol", "city": "Barcelona"},
-  "Inter": {"search": "Inter Mailand", "city": "Mailand"},
-  "Milan": {"search": "AC Milan", "city": "Mailand"},
-  "Roma": {"search": "AS Roma", "city": "Rom"},
-  "Lazio": {"search": "Lazio Rom", "city": "Rom"},
-  "Juventus": {"search": "Juventus", "city": "Turin"},
-  "Paris SG": {"search": "Paris Saint-Germain", "city": "Paris"},
-  "Sp Lisbon": {"search": "Sporting CP", "elo": "Sporting", "city": "Lissabon"},
-  "Benfica": {"search": "Benfica", "city": "Lissabon"},
-  "Porto": {"search": "FC Porto", "city": "Porto"},
-  "Sp Braga": {"search": "SC Braga", "elo": "Braga", "city": "Braga"},
-  "PSV Eindhoven": {"search": "PSV Eindhoven", "city": "Eindhoven"},
-  "Ajax": {"search": "Ajax Amsterdam", "city": "Amsterdam"},
-  "Feyenoord": {"search": "Feyenoord", "city": "Rotterdam"},
-  "Club Brugge": {"search": "Club Brugge", "city": "Brügge"},
-  "St Truiden": {"search": "Sint-Truiden", "city": "Sint-Truiden"},
-  "Galatasaray": {"search": "Galatasaray", "city": "Istanbul"},
-  "Fenerbahce": {"search": "Fenerbahce", "city": "Istanbul"},
-  "Besiktas": {"search": "Besiktas", "city": "Istanbul"},
-  "Buyuksehyr": {"search": "Basaksehir", "city": "Istanbul"},
-  "Celtic": {"search": "Celtic FC", "city": "Glasgow"},
-  "Rangers": {"search": "Rangers FC", "city": "Glasgow"}
+ "_hinweis": "Zuordnung von football-data-Namen. search = Name für News, elo = Name bei clubelo.com, us = Name bei understat.com, city = Ort fürs Wetter. Alles optional.",
+ "Bayern Munich": {
+  "search": "FC Bayern",
+  "elo": "Bayern",
+  "city": "München",
+  "us": "Bayern Munich"
+ },
+ "Dortmund": {
+  "search": "Borussia Dortmund",
+  "city": "Dortmund",
+  "us": "Borussia Dortmund"
+ },
+ "Leverkusen": {
+  "search": "Bayer Leverkusen",
+  "city": "Leverkusen",
+  "us": "Bayer Leverkusen"
+ },
+ "Ein Frankfurt": {
+  "search": "Eintracht Frankfurt",
+  "elo": "Frankfurt",
+  "city": "Frankfurt am Main",
+  "us": "Eintracht Frankfurt"
+ },
+ "M'gladbach": {
+  "search": "Borussia Mönchengladbach",
+  "elo": "Gladbach",
+  "city": "Mönchengladbach",
+  "us": "Borussia M.Gladbach"
+ },
+ "FC Koln": {
+  "search": "1. FC Köln",
+  "elo": "Koeln",
+  "city": "Köln",
+  "us": "FC Cologne"
+ },
+ "RB Leipzig": {
+  "search": "RB Leipzig",
+  "city": "Leipzig",
+  "us": "RasenBallsport Leipzig"
+ },
+ "Stuttgart": {
+  "search": "VfB Stuttgart",
+  "city": "Stuttgart",
+  "us": "VfB Stuttgart"
+ },
+ "Wolfsburg": {
+  "search": "VfL Wolfsburg",
+  "city": "Wolfsburg",
+  "us": "Wolfsburg"
+ },
+ "Hoffenheim": {
+  "search": "TSG Hoffenheim",
+  "city": "Sinsheim",
+  "us": "Hoffenheim"
+ },
+ "Werder Bremen": {
+  "search": "Werder Bremen",
+  "city": "Bremen",
+  "us": "Werder Bremen"
+ },
+ "Union Berlin": {
+  "search": "Union Berlin",
+  "city": "Berlin",
+  "us": "Union Berlin"
+ },
+ "Hertha": {
+  "search": "Hertha BSC",
+  "city": "Berlin",
+  "us": "Hertha Berlin"
+ },
+ "St Pauli": {
+  "search": "FC St. Pauli",
+  "city": "Hamburg",
+  "us": "St. Pauli"
+ },
+ "Hamburg": {
+  "search": "Hamburger SV",
+  "city": "Hamburg"
+ },
+ "Mainz": {
+  "search": "Mainz 05",
+  "city": "Mainz",
+  "us": "Mainz 05"
+ },
+ "Freiburg": {
+  "search": "SC Freiburg",
+  "city": "Freiburg im Breisgau",
+  "us": "Freiburg"
+ },
+ "Augsburg": {
+  "search": "FC Augsburg",
+  "city": "Augsburg",
+  "us": "Augsburg"
+ },
+ "Heidenheim": {
+  "search": "1. FC Heidenheim",
+  "city": "Heidenheim an der Brenz"
+ },
+ "Schalke 04": {
+  "search": "Schalke 04",
+  "city": "Gelsenkirchen"
+ },
+ "Salzburg": {
+  "search": "Red Bull Salzburg",
+  "city": "Salzburg"
+ },
+ "Rapid Vienna": {
+  "search": "Rapid Wien",
+  "elo": "Rapid Wien",
+  "city": "Wien"
+ },
+ "Austria Vienna": {
+  "search": "Austria Wien",
+  "elo": "Austria Wien",
+  "city": "Wien"
+ },
+ "Sturm Graz": {
+  "search": "SK Sturm Graz",
+  "city": "Graz"
+ },
+ "LASK": {
+  "search": "LASK",
+  "city": "Linz"
+ },
+ "Wolfsberger AC": {
+  "search": "Wolfsberger AC",
+  "city": "Wolfsberg"
+ },
+ "Tirol": {
+  "search": "WSG Tirol",
+  "city": "Innsbruck"
+ },
+ "Altach": {
+  "search": "SCR Altach",
+  "city": "Altach"
+ },
+ "Hartberg": {
+  "search": "TSV Hartberg",
+  "city": "Hartberg"
+ },
+ "Blau-Weiss Linz": {
+  "search": "Blau-Weiß Linz",
+  "city": "Linz"
+ },
+ "Grazer AK": {
+  "search": "Grazer AK",
+  "city": "Graz"
+ },
+ "Ried": {
+  "search": "SV Ried",
+  "city": "Ried im Innkreis"
+ },
+ "Man City": {
+  "search": "Manchester City",
+  "city": "Manchester",
+  "us": "Manchester City"
+ },
+ "Man United": {
+  "search": "Manchester United",
+  "city": "Manchester",
+  "us": "Manchester United"
+ },
+ "Nott'm Forest": {
+  "search": "Nottingham Forest",
+  "elo": "Forest",
+  "city": "Nottingham",
+  "us": "Nottingham Forest"
+ },
+ "Newcastle": {
+  "search": "Newcastle United",
+  "city": "Newcastle upon Tyne",
+  "us": "Newcastle United"
+ },
+ "Tottenham": {
+  "search": "Tottenham Hotspur",
+  "city": "London",
+  "us": "Tottenham"
+ },
+ "West Ham": {
+  "search": "West Ham United",
+  "city": "London",
+  "us": "West Ham"
+ },
+ "Arsenal": {
+  "search": "Arsenal",
+  "city": "London"
+ },
+ "Chelsea": {
+  "search": "Chelsea FC",
+  "city": "London"
+ },
+ "Crystal Palace": {
+  "search": "Crystal Palace",
+  "city": "London"
+ },
+ "Fulham": {
+  "search": "Fulham FC",
+  "city": "London"
+ },
+ "Brentford": {
+  "search": "Brentford FC",
+  "city": "London"
+ },
+ "Wolves": {
+  "search": "Wolverhampton Wanderers",
+  "city": "Wolverhampton",
+  "us": "Wolverhampton Wanderers"
+ },
+ "Brighton": {
+  "search": "Brighton & Hove Albion",
+  "city": "Brighton",
+  "us": "Brighton"
+ },
+ "Ath Madrid": {
+  "search": "Atlético Madrid",
+  "elo": "Atletico",
+  "city": "Madrid",
+  "us": "Atletico Madrid"
+ },
+ "Ath Bilbao": {
+  "search": "Athletic Bilbao",
+  "elo": "Bilbao",
+  "city": "Bilbao",
+  "us": "Athletic Club"
+ },
+ "Real Madrid": {
+  "search": "Real Madrid",
+  "city": "Madrid"
+ },
+ "Barcelona": {
+  "search": "FC Barcelona",
+  "city": "Barcelona"
+ },
+ "Sociedad": {
+  "search": "Real Sociedad",
+  "city": "San Sebastián",
+  "us": "Real Sociedad"
+ },
+ "Betis": {
+  "search": "Real Betis",
+  "city": "Sevilla",
+  "us": "Real Betis"
+ },
+ "Vallecano": {
+  "search": "Rayo Vallecano",
+  "city": "Madrid",
+  "us": "Rayo Vallecano"
+ },
+ "Celta": {
+  "search": "Celta Vigo",
+  "city": "Vigo",
+  "us": "Celta Vigo"
+ },
+ "Espanol": {
+  "search": "Espanyol",
+  "city": "Barcelona",
+  "us": "Espanyol"
+ },
+ "Inter": {
+  "search": "Inter Mailand",
+  "city": "Mailand"
+ },
+ "Milan": {
+  "search": "AC Milan",
+  "city": "Mailand",
+  "us": "AC Milan"
+ },
+ "Roma": {
+  "search": "AS Roma",
+  "city": "Rom"
+ },
+ "Lazio": {
+  "search": "Lazio Rom",
+  "city": "Rom"
+ },
+ "Juventus": {
+  "search": "Juventus",
+  "city": "Turin"
+ },
+ "Paris SG": {
+  "search": "Paris Saint-Germain",
+  "city": "Paris",
+  "us": "Paris Saint Germain"
+ },
+ "Sp Lisbon": {
+  "search": "Sporting CP",
+  "elo": "Sporting",
+  "city": "Lissabon"
+ },
+ "Benfica": {
+  "search": "Benfica",
+  "city": "Lissabon"
+ },
+ "Porto": {
+  "search": "FC Porto",
+  "city": "Porto"
+ },
+ "Sp Braga": {
+  "search": "SC Braga",
+  "elo": "Braga",
+  "city": "Braga"
+ },
+ "PSV Eindhoven": {
+  "search": "PSV Eindhoven",
+  "city": "Eindhoven"
+ },
+ "Ajax": {
+  "search": "Ajax Amsterdam",
+  "city": "Amsterdam"
+ },
+ "Feyenoord": {
+  "search": "Feyenoord",
+  "city": "Rotterdam"
+ },
+ "Club Brugge": {
+  "search": "Club Brugge",
+  "city": "Brügge"
+ },
+ "St Truiden": {
+  "search": "Sint-Truiden",
+  "city": "Sint-Truiden"
+ },
+ "Galatasaray": {
+  "search": "Galatasaray",
+  "city": "Istanbul"
+ },
+ "Fenerbahce": {
+  "search": "Fenerbahce",
+  "city": "Istanbul"
+ },
+ "Besiktas": {
+  "search": "Besiktas",
+  "city": "Istanbul"
+ },
+ "Buyuksehyr": {
+  "search": "Basaksehir",
+  "city": "Istanbul"
+ },
+ "Celtic": {
+  "search": "Celtic FC",
+  "city": "Glasgow"
+ },
+ "Rangers": {
+  "search": "Rangers FC",
+  "city": "Glasgow"
+ }
 }
