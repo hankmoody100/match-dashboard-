@@ -191,6 +191,19 @@ td.est{font-style:italic;color:var(--muted)}
 .steps{margin:.4rem 0 .8rem 1.2rem;padding:0;line-height:1.6}
 .steps code{background:var(--chip);padding:0 .3rem}
 table.cmp td.best{font-weight:700;color:var(--up)}
+h3.full{font-size:.86rem;margin:1.4rem 0 .5rem;padding-bottom:.25rem;border-bottom:2px solid var(--ink)}
+table.cmp3 td.l{white-space:nowrap}
+.sfsum{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--rule);margin-bottom:.6rem}
+.sfsum div{padding:.45rem .6rem;border-right:1px solid var(--rule);font-size:.86rem}
+.sfsum div:last-child{border-right:0}
+.sfsum span{display:block;font-size:.72rem;font-weight:600;color:var(--muted)}
+.sfsum div.on{background:#EEF3F9}
+.cmpwrap{overflow-x:auto}
+table.cmp3{font-size:.8rem}
+table.cmp3 td.l{white-space:normal;min-width:9rem}
+table.cmp3 td.best{font-weight:700;color:var(--up)}
+table.cmp3 td.on,table.cmp3 th.on{background:#EEF3F9}
+th.on button{color:var(--heat)}
 table.cmp{table-layout:fixed;width:100%}
 table.cmp td.l,table.cmp th.l{white-space:normal;width:46%}
 table.cmp th{white-space:normal;font-size:.76rem}
@@ -250,16 +263,17 @@ footer{padding:1.2rem 0 2.5rem;color:var(--muted);font-size:.8rem;max-width:95ch
     <label class="group"><span>Formgewichtung</span>
       <select id="f-form"><option value="1">Aus</option><option value="0.93" selected>Mittel</option><option value="0.85">Stark</option></select>
     </label>
-    <label class="group"><span>Modellanteil</span>
-      <select id="f-w"><option value="auto">Automatisch</option><option value="30">30 %</option><option value="50">50 %</option><option value="70">70 %</option><option value="85">85 %</option><option value="100">100 % (Markt ignorieren)</option></select>
+    <label class="group"><span>Tipp-Art</span>
+      <select id="f-tip"><option value="all">Alle Tipps</option><option value="win">Sieg / Remis</option><option value="dc">Doppelte Chance</option><option value="goals">Tore über / unter</option><option value="btts">Beide treffen</option></select>
     </label>
-    <label class="group"><span>Value ab <b id="thr-out">5</b> %</span>
-      <input type="range" id="f-thr" min="1" max="20" value="5">
-    </label>
+    <label class="group"><span>Chance ab</span><select id="f-pmin"></select></label>
+    <label class="group"><span>bis</span><select id="f-pmax"></select></label>
+    <label class="group"><span>Faire Quote mind.</span><select id="f-fair"><option value="1.1" selected>1,10</option><option value="1.2">1,20</option><option value="1.3">1,30</option><option value="1.4">1,40</option><option value="1.5">1,50</option><option value="1.7">1,70</option><option value="2">2,00</option></select></label>
+    <label class="group"><span>Sortierung</span><select id="f-sort"></select></label>
     <label class="group"><span>Suche</span>
       <input type="search" id="f-search" placeholder="Team oder Liga" autocomplete="off">
     </label>
-    <label class="check"><input type="checkbox" id="f-only"> Nur Value-Spiele</label>
+
   </div>
 </details>
 
@@ -275,7 +289,7 @@ footer{padding:1.2rem 0 2.5rem;color:var(--muted);font-size:.8rem;max-width:95ch
 <div class="tablewrap" id="out"></div>
 
 <footer>
-  Modell: Erwartete Tore je Team aus Angriffs- und Abwehrstärke (Heimteam in Heimspielen, Gastteam in Auswärtsspielen) im Verhältnis zum Ligaschnitt, bei wenigen Spielen Richtung Ligaschnitt gezogen. Jedes Spiel wird danach mit Poisson-verteilten Toren simuliert. Value: Modellwahrscheinlichkeit mal Quote minus 1. Ein positiver Value ist ein Hinweis, keine Gewinngarantie. Quelle: football-data.co.uk.
+  Modell: Erwartete Tore je Team aus Angriffs- und Abwehrstärke (Heimteam in Heimspielen, Gastteam in Auswärtsspielen) im Verhältnis zum Ligaschnitt, bei wenigen Spielen Richtung Ligaschnitt gezogen. Jedes Spiel wird danach mit Poisson-verteilten Toren simuliert. Faire Quote: 100 geteilt durch die Chance laut Modell. Quellen: football-data.co.uk, understat.com, clubelo.com.
 </footer>
 </div>
 
@@ -296,8 +310,10 @@ footer{padding:1.2rem 0 2.5rem;color:var(--muted);font-size:.8rem;max-width:95ch
       <label class="group"><span>Statistik-Zeitraum</span><select id="tn-period"><option value="365" selected>52 Wochen</option><option value="730">2 Jahre</option></select></label>
       <label class="group"><span>Mind. Matches</span><input type="number" id="tn-min" min="1" max="60" value="8"></label>
       <label class="group"><span>Simulationen je Match</span><select id="tn-sims"><option value="1500" selected>1.500</option><option value="5000">5.000</option><option value="10000">10.000</option></select></label>
-      <label class="group"><span>Modellanteil</span><select id="tn-w"><option value="30">30 %</option><option value="50">50 %</option><option value="70">70 %</option><option value="85">85 %</option><option value="100">100 % (Markt ignorieren)</option></select></label>
-      <label class="group"><span>Value ab <b id="tn-thr-out">5</b> %</span><input type="range" id="tn-thr" min="1" max="20" value="5"></label>
+      <label class="group"><span>Siegchance Favorit ab</span><select id="tn-fmin"></select></label>
+      <label class="group"><span>bis</span><select id="tn-fmax"></select></label>
+      <label class="group"><span>Tiebreak-Chance ab</span><select id="tn-tbmin"></select></label>
+      <label class="group"><span>Sortierung</span><select id="tn-sort"></select></label>
       <label class="group"><span>Suche</span><input type="search" id="tn-search" placeholder="Spieler oder Turnier" autocomplete="off"></label>
     </div>
   </details>
@@ -362,7 +378,7 @@ const SHORT = {AUT:"Österreich",D1:"Bundesliga",D2:"2. Bundesliga",E0:"England"
 let DB = null;
 const state = {
   tab:"fixtures", leagues:new Set(), seasons:new Set(), venue:"all", lastN:10, half:"ft",
-  role:"all", days:7, search:"", minGames:5, thr:5, only:false, sims:1500, decay:0.93, topRange:"today", topKind:"prob", minOdds:1.3, wModel:(() => { try{ const v = localStorage.getItem("tb_wmodel"); return v===null ? 50 : v==="auto" ? null : +v; }catch(e){ return 50; } })(),
+  role:"all", days:7, search:"", minGames:5, thr:5, only:false, sims:1500, decay:0.93, topRange:"today", topKind:"prob", minOdds:1.3, tipKind:"all", tipMin:50, tipMax:100, minFair:1.1, fxSort:"p_desc", topCat:"all", wModel:(() => { try{ const v = localStorage.getItem("tb_wmodel"); return v===null ? 50 : v==="auto" ? null : +v; }catch(e){ return 50; } })(),
   sort:{fixtures:["ev",-1], teams:["o25",-1], leagues:["tot",-1]}
 };
 
@@ -582,46 +598,80 @@ const bestValue = (S, f) => valueList(S, f).sort((a,b) => b.ev - a.ev)[0] || nul
 const int = v => Math.round(v).toLocaleString("de-DE");
 const SUSPECT = 30;
 
+/* ---------- Tipps: wahrscheinlichste Wetten je Spiel ---------- */
+const TIP_CATS = {all:"Alle Tipps", win:"Sieg / Remis", dc:"Doppelte Chance", goals:"Tore über / unter", btts:"Beide treffen"};
+function tipsFrom(P, f){
+  const H = f ? f.h : "Heim", A = f ? f.a : "Gast";
+  return [
+    {k:"1", cat:"win", lab:`1 · ${H} gewinnt`, p:P.p1}, {k:"X", cat:"win", lab:"X · Remis", p:P.px}, {k:"2", cat:"win", lab:`2 · ${A} gewinnt`, p:P.p2},
+    {k:"1X", cat:"dc", lab:`1X · ${H} verliert nicht`, p:P.p1+P.px}, {k:"X2", cat:"dc", lab:`X2 · ${A} verliert nicht`, p:P.px+P.p2}, {k:"12", cat:"dc", lab:"12 · kein Remis", p:P.p1+P.p2},
+    {k:"O15", cat:"goals", lab:"Über 1,5 Tore", p:P.o15}, {k:"O25", cat:"goals", lab:"Über 2,5 Tore", p:P.o25}, {k:"U25", cat:"goals", lab:"Unter 2,5 Tore", p:100-P.o25}, {k:"U35", cat:"goals", lab:"Unter 3,5 Tore", p:100-P.o35},
+    {k:"BY", cat:"btts", lab:"Beide treffen: Ja", p:P.btts}, {k:"BN", cat:"btts", lab:"Beide treffen: Nein", p:100-P.btts}
+  ].filter(t => t.p!=null && !isNaN(t.p));
+}
+function tipWon(k, hg, ag){ const t = hg+ag;
+  return {"1":hg>ag, "X":hg===ag, "2":hg<ag, "1X":hg>=ag, "X2":hg<=ag, "12":hg!==ag, "O15":t>1.5, "O25":t>2.5, "U25":t<2.5, "U35":t<3.5, "BY":hg>0&&ag>0, "BN":!(hg>0&&ag>0)}[k]; }
+function bestTip(P, f, cat=state.tipKind){
+  const maxP = 100/state.minFair;   // Mindest-Quote: sehr sichere Tipps mit Mini-Quoten ausblenden
+  return tipsFrom(P, f).filter(t => (cat==="all" || t.cat===cat) && t.p <= maxP).sort((a,b) => b.p - a.p)[0] || null;
+}
+// Wahrscheinlichkeiten aus erwarteten Toren (exakt, mit Remis-Korrektur), für die Rückrechnung
+function probsFromLam(lh, la, rho=0){
+  const ph = [], pa = []; let eh = Math.exp(-lh), ea = Math.exp(-la);
+  for(let k=0;k<11;k++){ ph.push(eh); pa.push(ea); eh *= lh/(k+1); ea *= la/(k+1); }
+  let s=0, p1=0, px=0, p2=0, o15=0, o25=0, o35=0, bt=0;
+  for(let i=0;i<11;i++) for(let j=0;j<11;j++){
+    let p = ph[i]*pa[j];
+    if(rho){ if(i===0&&j===0) p *= 1-lh*la*rho; else if(i===0&&j===1) p *= 1+lh*rho; else if(i===1&&j===0) p *= 1+la*rho; else if(i===1&&j===1) p *= 1-rho; }
+    if(p < 0) p = 0; s += p;
+    if(i>j) p1+=p; else if(i===j) px+=p; else p2+=p; const t = i+j; if(t>1) o15+=p; if(t>2) o25+=p; if(t>3) o35+=p; if(i>0&&j>0) bt+=p;
+  }
+  const q = x => x/s*100; return {p1:q(p1), px:q(px), p2:q(p2), o15:q(o15), o25:q(o25), o35:q(o35), btts:q(bt)};
+}
+function tipTags(f, t){
+  const tags = [], E = eloFx(f), m3 = noVig3(f.oh,f.od,f.oa);
+  const parts = {"1":[0],"X":[1],"2":[2],"1X":[0,1],"X2":[1,2],"12":[0,2]}[t.k];
+  if(parts && E && m3){ const s = a => parts.reduce((x,i) => x + a[i], 0); if(s([E.p1,E.px,E.p2]) >= t.p - 5) tags.push(`<span class="tag ok" title="ClubElo sieht diesen Tipp ähnlich oder stärker">Elo ✓</span>`); }
+  const side = {"1":"h","1X":"h","2":"a","X2":"a"}[t.k];
+  if(side){ const team = side==="h" ? f.h : f.a, s = agg(teamForm(f.l, team, 10, f.d)), o = agg(teamForm(f.l, side==="h" ? f.a : f.h, 10, f.d));
+    if(s && o && s.xgd!=null && o.xgd!=null && s.xgd - o.xgd >= 0.5) tags.push(`<span class="tag ok" title="Klar bessere Chancenbilanz der letzten 10 Spiele">xG ✓</span>`);
+    if(s && s.luck!=null && s.luck > LUCK) tags.push(`<span class="tag" title="${esc(team)} trifft zuletzt über den Chancen, das gleicht sich oft aus">Glück ↑</span>`); }
+  if(["O15","O25","BY"].includes(t.k)){ const H = agg(teamForm(f.l, f.h, 10, f.d)), A = agg(teamForm(f.l, f.a, 10, f.d));
+    if(H && A && H.xg!=null && A.xg!=null && H.xg + A.xg >= 3) tags.push(`<span class="tag ok" title="Beide Teams zusammen über 3 xG je Spiel">viele Chancen</span>`); }
+  return tags.join(" ");
+}
+
 /* ---------- Kommende Spiele ---------- */
 let FIX = [];
+const FB_SORT = {p_desc:["Sicherster Tipp zuerst", r => -(r.t ? r.t.p : -1)], p_asc:["Knappste Tipps zuerst", r => r.t ? r.t.p : 999],
+  g_desc:["Meiste Tore erwartet", r => -((r.S?r.S.xh+r.S.xa:0))], g_asc:["Wenigste Tore erwartet", r => (r.S?r.S.xh+r.S.xa:99)], dt:["Nach Termin", r => r.dt]};
 function renderFixtures(){
   const ctx = {map:perspectives(false), avgs:leagueAvgs()};
   const from = isoDay(0), to = state.days ? isoDay(state.days - 1) : "9999";
-  const rows = [];
+  let rows = [];
   for(const f of DB.fixtures){
     if(!state.leagues.has(f.l) || f.d < from || f.d > to || !matchSearch(f.h, f.a, lname(f.l))) continue;
-    const S = simFixture(f, ctx), v = bestValue(S, f);
-    if(state.only && !(v && v.ev >= state.thr)) continue;
-    rows.push({f, S, v, dt:f.d+" "+(f.t||""), xh:S?S.xh:null, xa:S?S.xa:null, top:S?S.top[0].p:null,
-      p1:S?S.p1:null, px:S?S.px:null, p2:S?S.p2:null, o25:S?S.o25:null, btts:S?S.btts:null, ev:v?v.ev:null,
-      el:(eloFx(f)||{}).p1 ?? null, mv:moves(f), xgb:(() => { const H = agg(teamForm(f.l, f.h)), A = agg(teamForm(f.l, f.a)); return H && A && H.xgd!=null && A.xgd!=null ? H.xgd - A.xgd : null; })()});
-    rows[rows.length-1].mvv = rows[rows.length-1].mv ? Math.abs(rows[rows.length-1].mv.big.pct) : null;
+    const S = simFixture(f, ctx); if(!S) continue;
+    const t = bestTip(S, f);
+    rows.push({f, S, t, dt:f.d+" "+(f.t||""),
+      xgb:(() => { const H = agg(teamForm(f.l, f.h)), A = agg(teamForm(f.l, f.a)); return H && A && H.xgd!=null && A.xgd!=null ? H.xgd - A.xgd : null; })()});
   }
-  $("#lead").textContent = `Jedes Spiel wird ${int(state.sims)}-mal simuliert. Klick auf eine Zeile öffnet das Spielblatt mit Simulation, News, Quotenverlauf und Tipp-Notiz. „xG-Bilanz“: Chancenverhältnis der letzten 10 Spiele, Heim minus Gast. „Quote bewegt“: größte Änderung seit der ersten Erfassung, ↓ heißt Geld auf diesen Ausgang.`
-    + (state.half==="ft" ? "" : " Halbzeitansicht: Value-Vergleich ausgeblendet.");
+  rows = rows.filter(r => r.t && r.t.p >= state.tipMin && r.t.p <= state.tipMax);
+  $("#lead").textContent = `Pro Spiel der wahrscheinlichste Tipp (${TIP_CATS[state.tipKind]}, nur ab fairer Quote ${fmt(state.minFair)}) mit Chance und fairer Quote. Jedes Spiel ${int(state.sims)}-mal simuliert. Klick auf eine Zeile öffnet das Spielblatt mit allen Tipps, Ergebnismatrix und News.`;
   $("#count").textContent = `${rows.length} Spiele`;
-  if(!rows.length) return empty(state.only ? "Kein Spiel über der Value-Schwelle. Schwelle senken oder „Nur Value-Spiele“ ausschalten." : "Keine Spiele im gewählten Zeitraum. Die Spieltagsliste füllt sich meist ab Wochenmitte.");
-  sortRows("fixtures", rows);
+  if(!rows.length) return empty("Keine Spiele für diese Auswahl. Filter für Chance oder Tipp-Art lockern, oder Spieltermine erweitern.");
+  const key = FB_SORT[state.fxSort][1]; rows.sort((x,y) => { const a = key(x), b = key(y); return typeof a==="string" ? a.localeCompare(b) : a-b; });
   FIX = rows;
   const wd = d => new Date(d+"T12:00:00").toLocaleDateString("de-AT",{weekday:"short",day:"2-digit",month:"2-digit"});
-  return `<table><thead><tr class="g">${gh("",2,"stick gl")}${gh("Modell",3,"gl sep")}${gh("Simulation",5,"gl sep")}${gh("Bester Value (kalibriert)",3,"gl sep")}${gh("Gegencheck",3,"gl sep")}</tr>
-  <tr class="c">${th("fixtures","dt","Termin","l stick")}<th class="l">Spiel</th>
-    ${th("fixtures","xh","xG Heim","sep")}${th("fixtures","xa","xG Gast")}${th("fixtures","top","Ergebnis")}
-    ${th("fixtures","p1","1","sep")}${th("fixtures","px","X")}${th("fixtures","p2","2")}${th("fixtures","o25","Ü 2,5")}${th("fixtures","btts","Beide tr.")}
-    <th class="l sep">Tipp</th><th>Quote</th>${th("fixtures","ev","Value")}
-    ${th("fixtures","el","Elo 1","sep")}${th("fixtures","xgb","xG-Bilanz")}${th("fixtures","mvv","Quote bewegt")}
-  </tr></thead><tbody>${rows.map((r,i) => {
-    const t = r.S ? r.S.top[0] : null, v = r.v;
-    const vc = v ? (v.ev > SUSPECT ? "warn" : v.ev >= state.thr ? "up hitup" : v.ev < 0 ? "sub" : "") : "";
-    return `<tr class="click" data-fix="${i}" tabindex="0">
+  return `<table><thead><tr class="g">${gh("",2,"stick gl")}${gh("Wahrscheinlichster Tipp",3,"gl sep")}${gh("Ausgang",3,"gl sep")}${gh("Tore",4,"gl sep")}${gh("Gegencheck",2,"gl sep")}</tr>
+  <tr class="c"><th class="l stick">Termin</th><th class="l">Spiel</th><th class="l sep">Tipp</th><th>Chance</th><th>Faire Quote</th>
+    <th class="sep">1</th><th>X</th><th>2</th><th class="sep">Erwartet</th><th>Ü 2,5</th><th>Beide tr.</th><th>Ergebnis</th><th class="sep">Elo 1</th><th>xG-Bilanz</th>
+  </tr></thead><tbody>${rows.map((r,i) => { const t0 = r.S.top[0]; return `<tr class="click" data-fix="${i}" tabindex="0">
     <td class="l stick">${esc(wd(r.f.d))} <span class="sub">${esc(koTime(r.f))}</span><br><span class="sub">${esc(sname(r.f.l))}</span></td>
-    <td class="l"><button class="team" data-team="${esc(r.f.l+"|"+r.f.h)}" data-venue="home">${esc(r.f.h)}</button><span class="vs">–</span><button class="team" data-team="${esc(r.f.l+"|"+r.f.a)}" data-venue="away">${esc(r.f.a)}</button>
-      <br><span class="sub">${r.S && r.S.rating ? "Rating-Modell" : `Basis ${r.S?r.S.nh:0} Heim- / ${r.S?r.S.na:0} Auswärtsspiele`}</span></td>
-    ${nc(r.xh,2,true)}${nc(r.xa)}<td class="n">${t ? `<b>${t.h}:${t.a}</b> <span class="sub">${Math.round(t.p)} %</span>` : "–"}</td>
-    ${pc(r.p1,true)}${pc(r.px)}${pc(r.p2)}${pc(r.o25)}${pc(r.btts)}
-    <td class="l sep">${v ? esc(v.lab) : "–"}</td>${nc(v ? v.o : null)}<td class="n ${vc}"${v && v.ev > SUSPECT ? ' title="Sehr hoher Value deutet meist auf Modellfehler oder fehlende Infos hin (Ausfälle, Rotation). Genau prüfen."' : ""}>${v ? (v.ev>0?"+":"") + Math.round(v.ev) + " %" + (v.ev > SUSPECT ? " ?" : "") : "–"}</td>
-    ${pc(r.el,true)}<td class="n ${r.xgb>0.4?"up":r.xgb<-0.4?"down":""}" title="xG-Differenz der letzten 10 Spiele: Heimteam minus Gastteam">${r.xgb==null ? "–" : (r.xgb>0?"+":"")+fmt(r.xgb,2)}</td>${(() => { const b = r.mv && r.mv.big; if(!b) return `<td class="n sub">–</td>`;
-      const hit = Math.abs(b.pct) >= MOVE_FLAG; return `<td class="n ${hit ? (b.pct<0 ? "up hitup" : "down hitdown") : ""}" title="${esc(b.lab)}: ${fmt(b.from)} → ${fmt(b.to)}">${esc(b.lab)} ${b.pct<0?"↓":"↑"}${fmt(Math.abs(b.pct),0)} %</td>`; })()}
+    <td class="l"><button class="team" data-team="${esc(r.f.l+"|"+r.f.h)}" data-venue="home">${esc(r.f.h)}</button><span class="vs">–</span><button class="team" data-team="${esc(r.f.l+"|"+r.f.a)}" data-venue="away">${esc(r.f.a)}</button></td>
+    <td class="l sep"><b>${esc(r.t.lab)}</b></td>${pc(r.t.p)}${nc(100/r.t.p)}
+    ${pc(r.S.p1,true)}${pc(r.S.px)}${pc(r.S.p2)}${nc(r.S.xh+r.S.xa,1,true)}${pc(r.S.o25)}${pc(r.S.btts)}<td class="n"><b>${t0.h}:${t0.a}</b></td>
+    ${pc((eloFx(r.f)||{}).p1 ?? null,true)}<td class="n ${r.xgb>0.4?"up":r.xgb<-0.4?"down":""}" title="xG-Differenz der letzten 10 Spiele: Heim minus Gast">${r.xgb==null ? "–" : (r.xgb>0?"+":"")+fmt(r.xgb,2)}</td>
   </tr>`; }).join("")}</tbody></table>`;
 }
 
@@ -648,10 +698,11 @@ function renderSheet(){
   const S = simFixture(f, {map:perspectives(false), avgs:leagueAvgs()}, adj, SH.salt, sims);
   if(!S){ $("#sh-body").innerHTML = empty("Zu wenige Spiele für eine Simulation. Mehr Saisonen wählen."); return; }
   const ft = state.half==="ft", m3 = ft ? noVig3(f.oh,f.od,f.oa) : null, mO = ft ? noVig2(f.oo,f.ou) : null;
-  const vals = Object.fromEntries(valueList(S, f).map(v => [v.lab, v]));
+  const vals = {};
   const evc = v => !v ? `<td class="n">–</td>` : `<td class="n ${v.ev > SUSPECT ? "warn" : v.ev >= state.thr ? "up hitup" : v.ev < 0 ? "sub" : ""}">${v.ev>0?"+":""}${Math.round(v.ev)} %${v.ev > SUSPECT ? " ?" : ""}</td>`;
   const CAL = calibrate(S.p1, S.px, S.p2, S.o25, m3, mO);
-  const row1x2 = (lab, p, o, mk, key) => { const cp = {"1":CAL.p1,"X":CAL.px,"2":CAL.p2}[key]; return `<tr><td class="l"><b>${lab}</b></td>${pc(p)}${pc(cp)}${nc(fair(cp))}${nc(o)}${pc(mk)}${evc(vals[key])}</tr>`; };
+  const row1x2 = (lab, p) => `<tr><td class="l"><b>${lab}</b></td>${pc(p)}${nc(fair(p))}</tr>`;
+  const tipsAll = tipsFrom(S, f).sort((a,b) => b.p - a.p);
   const ou = [0.5,1.5,2.5,3.5,4.5].map(x => { const o = S["o"+String(x).replace(".","")]; return `<tr><td class="l">${fmt(x,1)}</td>${pc(o)}${nc(fair(o))}${pc(100-o)}${nc(fair(100-o))}</tr>`; }).join("");
   const N = 6, maxp = Math.max(...S.top.map(t => t.p));
   let mx = `<div class="mx"><span class="mxc corner">Heim ↓ / Gast →</span>`;
@@ -672,16 +723,15 @@ function renderSheet(){
       <div><span>Beide treffen</span><b>${Math.round(S.btts)} %</b><em>faire Quote ${fmt(fair(S.btts))}</em></div>
       <div><span>Simulationen</span><b>${int(S.n)}</b><em>${S.rating ? "Rating-Modell, Remis-Korrektur aktiv" : `Basis ${S.nh} / ${S.na} Spiele`}</em></div>
     </div>
-    ${Object.values(vals).some(v => v.ev > SUSPECT) ? `<p class="caution">Ein Value über ${SUSPECT} % ist fast immer ein Hinweis, dass dem Modell etwas fehlt, etwa Ausfälle, Trainerwechsel oder Rotation. Vor einer Entscheidung die Regler anpassen und Hintergründe prüfen.</p>` : ""}
     <div class="cols">
       <section>
-        <h3>Ausgang</h3>
-        <table><thead class="single"><tr class="c"><th class="l"></th><th>Modell</th><th>Kalib.</th><th>Fair</th><th title="Beste erfasste Quote">Quote</th><th>Markt</th><th>Value</th></tr></thead><tbody>
-          ${row1x2("1 Heimsieg",S.p1,ft?bestNow(f).h:null,m3?m3[0]:null,"1")}${row1x2("X Remis",S.px,ft?bestNow(f).d:null,m3?m3[1]:null,"X")}${row1x2("2 Auswärtssieg",S.p2,ft?bestNow(f).a:null,m3?m3[2]:null,"2")}
+        <h3>Alle Tipps, wahrscheinlichste zuerst</h3>
+        <table><thead class="single"><tr class="c"><th class="l">Tipp</th><th>Chance</th><th>Faire Quote</th></tr></thead><tbody>
+          ${tipsAll.map(t => `<tr><td class="l">${esc(t.lab)} ${tipTags(f, t)}</td>${pc(t.p)}${nc(100/t.p)}</tr>`).join("")}
         </tbody></table>
         <h3>Über / Unter</h3>
         <table><thead class="single"><tr class="c"><th class="l">Linie</th><th>Über</th><th>Fair</th><th>Unter</th><th>Fair</th></tr></thead><tbody>${ou}</tbody></table>
-        <p class="sub note">Über 2,5 laut Quote: ${f.oo&&ft ? `${fmt(f.oo)} (Markt ${Math.round(mO)} %), Value ${evc(vals["Über 2,5"]).replace(/<[^>]+>/g,"")}` : "keine Quote"}. Unter 2,5: ${f.ou&&ft ? `${fmt(f.ou)}, Value ${evc(vals["Unter 2,5"]).replace(/<[^>]+>/g,"")}` : "keine Quote"}.</p>
+        <p class="sub note">Faire Quote = 100 geteilt durch die Chance. Bietet ein Buchmacher weniger, ist der Tipp laut Modell zu teuer.</p>
       </section>
       <section>
         <h3>Ergebnismatrix in %</h3>
@@ -1156,15 +1206,15 @@ function calChart(cal1, calO){
 }
 function renderCheck(){
   const R = backtest();
-  $("#lead").textContent = "Das Modell rechnet alle Spiele der gewählten Ligen und Saisonen nach, jeweils nur mit dem Wissen bis zum Vortag. So siehst du, ob die Prozente stimmen und ob die Value-Signale den Schlusskurs geschlagen hätten.";
+  $("#lead").textContent = "Das Modell rechnet alle Spiele der gewählten Ligen und Saisonen nach, jeweils nur mit dem Wissen bis zum Vortag. So siehst du, ob die Prozente stimmen.";
   $("#count").textContent = `${R.n.toLocaleString("de-AT")} Spiele bewertet`;
   if(!R.n) return empty("Zu wenige Spiele. Mehr Saisonen oder Ligen wählen.");
   const bm = R.bm/R.n, bk = R.nk ? R.bk/R.nk : null, roi = R.bets ? R.pl/R.bets*100 : null;
   const calRows = cal => cal.map((b,i) => b.n ? `<tr><td class="l">${i*10}–${i*10+10} %</td>${nc(b.n,0)}${pc(b.p/b.n)}${pc(b.y/b.n*100)}${dc(b.y/b.n*100 - b.p/b.n, null, false, 5)}</tr>` : "").join("");
   const verdict = bk==null ? "" : bm <= bk
     ? "Das Modell war in diesem Zeitraum mindestens so genau wie der Markt. Das ist ungewöhnlich, prüfe es mit anderen Saisonen."
-    : `Der Markt war genauer als das Modell (Brier ${fmt(bk,3)} gegen ${fmt(bm,3)}). Das ist der Normalfall. Value-Signale sind deshalb Hinweise zum Nachschauen, keine Kaufsignale.`;
-  const M = EX.model, S = M && M.summary, P = M && M.params, ps = priceStats(), c = calibStats();
+    : `Der Markt war genauer als das Modell (Brier ${fmt(bk,3)} gegen ${fmt(bm,3)}). Das ist der Normalfall. Die Prozente sind trotzdem brauchbar, wenn die Kalibrierung unten stimmt.`;
+  const M = EX.model, S = M && M.summary, P = M && M.params;
   const ll = v => v==null ? "–" : fmt(v, 4);
   const head = S && S.n ? `
     <h3>Rating-Modell gegen den Markt (Spiele der zwei Jahre vor dem 26.10.2026)</h3>
@@ -1173,23 +1223,15 @@ function renderCheck(){
       ${S.close!=null ? `<tr><td class="l">gegen Schlussquote</td>${nc(S.model_on_close,4)}${nc(S.close,4)}${gapc((S.model_on_close - S.close)*1000)}${nc(S.n_close,0)}</tr>` : ""}
     </tbody></table>
     <p class="sub note">Abstand in Tausendstel. Unter 0 heißt: Modell genauer als der Markt. Bis etwa +5 ist das Modell auf Augenhöhe und taugt als Gegencheck. Vom Modell selbst gewählt: Halbwertszeit ${P.hl} Tage, Schüsse aufs Tor zählen ${Math.round((1-P.alpha)*100)} %, Remis-Korrektur ${fmt(P.rho,2)}. Neu bestimmt einmal am Tag.</p>` : `<p class="note sub">Das Rating-Modell wurde noch nicht berechnet. Es entsteht beim nächsten Datenabruf auf GitHub. Bis dahin rechnet das Board mit dem einfachen Bilanz-Modell.</p>`;
-  const realistic = `
-    <h3>Realistischer Test: zur besten Quote vor dem Spiel</h3>
-    <table><thead class="single"><tr class="c"><th class="l">Signal</th><th>Tipps</th><th>Rendite</th><th>Markt bewegte sich zum Tipp</th></tr></thead><tbody>
-      <tr><td class="l">Modell-Value ab ${state.thr} % (${wText()})</td>${nc(c.bets,0)}<td class="n ${c.roi>0?"up":c.roi<0?"down":""}">${c.roi==null?"–":(c.roi>0?"+":"")+fmt(c.roi,1)+" %"}</td>${pc(c.clvShare)}</tr>
-      <tr><td class="l">Bester Preis ab ${state.thr} % über Pinnacle</td>${nc(ps.bets,0)}<td class="n ${ps.roi>0?"up":ps.roi<0?"down":""}">${ps.roi==null?"–":(ps.roi>0?"+":"")+fmt(ps.roi,1)+" %"}</td>${pc(ps.clvShare)}</tr>
-    </tbody></table>
-    <p class="sub note">Die letzte Spalte ist der ehrlichste Qualitätstest: Bewegt sich der Markt bis zum Anpfiff in mehr als 50 % der Fälle in Richtung des Tipps, steckt echte Information drin, unabhängig vom Glück bei den Ergebnissen. Unter 50 % bedeutet: Der Markt korrigiert eher gegen das Signal.</p>`;
-  return `<div class="pad">${head}${realistic}
+  return `<div class="pad">${head}
     <h3>Gesamtbild in den gewählten Saisonen</h3>
     <div class="kpis">
       <div><span>Genauigkeit 1X2 (Brier, kleiner ist besser)</span><b>${fmt(bm,3)}</b><em>Markt: ${bk==null ? "–" : fmt(bk,3)}</em></div>
-      <div><span>Value-Signale ab ${state.thr} %</span><b>${R.bets.toLocaleString("de-AT")}</b><em>${R.bets ? Math.round(R.won/R.bets*100)+" % getroffen, Ø Quote "+fmt(R.odds/R.bets) : "keine"}</em></div>
-      <div><span>Rendite roh zur Schlussquote</span><b class="${roi>0?"up":roi<0?"down":""}">${roi==null ? "–" : (roi>0?"+":"")+fmt(roi,1)+" %"}</b><em>1 Einheit je Signal</em></div>
+
       <div><span>Bewertete Spiele</span><b>${R.n.toLocaleString("de-AT")}</b><em>ab 40 Ligaspielen und ${state.minGames} Spielen je Team</em></div>
     </div>
     <p class="note ${bk!=null && bm>bk ? "sub" : "agree"}">${verdict}</p>
-    ${(() => { return c.n ? `<p class="note agree">Mit deiner Gewichtung (${wText()}): Genauigkeit ${fmt(c.brier,3)}, ${c.bets.toLocaleString("de-AT")} Value-Signale, Rendite ${c.roi==null ? "–" : (c.roi>0?"+":"")+fmt(c.roi,1)+" %"} zur besten Quote vor dem Spiel. Zum Vergleich (Brier gegen Schlussquote): Markt allein ${fmt(bk,3)}, Modell allein ${fmt(bm,3)}.</p>` : ""; })()}
+
     <div class="cols">
       <section><h3>Kalibrierung</h3>${calChart(R.cal1, R.calO)}
         <p class="sub note">Liegen die Punkte nahe der gestrichelten Linie, stimmen die Prozente. Punkte unter der Linie heißen: Das Modell war zu optimistisch.</p></section>
@@ -1215,7 +1257,7 @@ function predictAll(){
     for(const r of EX.model.rows){
       if(!state.leagues.has(r[0])) continue;
       const m = idx.get(`${r[0]}|${r[1]}|${r[2]}|${r[3]}`); if(!m || m.hg==null) continue;
-      preds.push({m, p:{p1:r[6], px:r[7], p2:r[8], o25:r[9]}});
+      preds.push({m, p:{p1:r[6], px:r[7], p2:r[8], o25:r[9]}, lh:r[4], la:r[5]});
     }
   } else {
     const take = a => state.lastN ? a.slice(0, state.lastN) : a;
@@ -1231,7 +1273,7 @@ function predictAll(){
           if(n >= 40 && H.length >= state.minGames && A.length >= state.minGames){
             const mh = sh/n, ma = sa/n, hr = take(H), ar = take(A);
             const lh = Math.max(.05, strength(hr,"gf",mh)*strength(ar,"ga",mh)*mh), la = Math.max(.05, strength(ar,"gf",ma)*strength(hr,"ga",ma)*ma);
-            preds.push({m, p:exactProbs(lh, la)});
+            preds.push({m, p:exactProbs(lh, la), lh, la});
           }
         }
         for(const m of day){ get(m.h).H.unshift({gf:m.hg, ga:m.ag}); get(m.a).A.unshift({gf:m.ag, ga:m.hg}); sh += m.hg; sa += m.ag; n++; }
@@ -1365,55 +1407,54 @@ function tracking(){
 }
 
 function renderTop(){
-  const {w1, wO, nfit} = predictAll();
-  const items = upcomingItems(state.topRange==="today" ? 1 : 7, state.topKind);
-  const list = pickTop(items, state.topKind, state.minOdds);
-  const T = tracking();
-  const kindTxt = state.topKind==="prob" ? `Die zehn Tipps mit der höchsten Wahrscheinlichkeit, nur ab Quote ${fmt(state.minOdds)}. Gewichtung: ${wText()}.`
-    : state.topKind==="value" ? `Die zehn Tipps, bei denen die kalibrierte Wahrscheinlichkeit am weitesten über der besten Quote liegt. Gewichtung: ${wText()}.`
-    : `Ohne Modell: Buchmacher, deren Quote mindestens ${state.thr} % über dem fairen Pinnacle-Preis liegt. Pinnacle gilt als genauester Markt, Ausreißer anderer Anbieter sind die belegbarste Form von Value.`;
-  $("#lead").textContent = `${kindTxt} Je Spiel nur der stärkste Tipp. „Quote“ ist die beste erfasste Quote. 1X und X2 mit der Quote, die sich ergibt, wenn der Einsatz auf beide Ausgänge verteilt wird.`;
+  const ctx = {map:perspectives(false), avgs:leagueAvgs()}, days = state.topRange==="today" ? 1 : 7, from = isoDay(0), to = isoDay(days-1);
+  const items = [];
+  for(const f of DB.fixtures){ if(!state.leagues.has(f.l) || f.d < from || f.d > to) continue; const S = simFixture(f, ctx); if(!S) continue;
+    const t = bestTip(S, f, state.topCat); if(t) items.push({f, S, t}); }
+  const list = items.sort((a,b) => b.t.p - a.t.p).slice(0,10);
+  $("#lead").textContent = `Die zehn wahrscheinlichsten Tipps (${TIP_CATS[state.topCat]}), ${state.topRange==="today" ? "heute" : "nächste 7 Tage"}. Je Spiel ein Tipp, nur ab fairer Quote ${fmt(state.minFair)}, damit keine Mini-Quoten die Liste füllen. Hohe Chance heißt nicht automatisch lohnend, darunter steht, wie oft solche Listen zuletzt aufgegangen sind.`;
   $("#count").textContent = `${list.length} Tipps`;
   const wd = d => new Date(d+"T12:00:00").toLocaleDateString("de-AT",{weekday:"short",day:"2-digit",month:"2-digit"});
   const seg = (name, val, opts) => `<div class="seg">${opts.map(([v,l]) => `<label><input type="radio" name="${name}" value="${v}" ${val===v?"checked":""}>${l}</label>`).join("")}</div>`;
-  const statRow = (label, s) => `<tr><td class="l">${label}</td>${nc(s.n,0)}${nc(s.hit,0)}${pc(s.rate)}${pc(s.exp)}${nc(s.odds)}<td class="n ${s.roi>0?"up":s.roi<0?"down":""}">${s.roi==null ? "–" : (s.roi>0?"+":"")+fmt(s.roi,1)+" %"}</td></tr>`;
-  const trTable = (R, title, note) => `<h3>${title}</h3>
-    <table><thead class="single"><tr class="c"><th class="l">Liste</th><th>Tipps</th><th>Treffer</th><th>Trefferquote</th><th>Erwartet</th><th>Ø Quote</th><th>Rendite</th></tr></thead><tbody>
-      ${statRow("Täglich, wahrscheinlichste", R.prob.day)}${statRow("Täglich, größter Vorteil", R.value.day)}
-      ${statRow("Täglich, bester Preis", R.price.day)}
-      ${statRow("Wöchentlich, wahrscheinlichste", R.prob.week)}${statRow("Wöchentlich, größter Vorteil", R.value.week)}${statRow("Wöchentlich, bester Preis", R.price.week)}
-    </tbody></table><p class="sub note">${note}</p>`;
-  const recent = [...T.since.prob.dayPicks.map(p => ({...p, kind:"Wahrscheinlich"})), ...T.since.value.dayPicks.map(p => ({...p, kind:"Vorteil"})), ...T.since.price.dayPicks.map(p => ({...p, kind:"Preis"}))]
-    .sort((a,b) => a.m.d < b.m.d ? 1 : -1).slice(0, 80);
-  return `<div class="pad">
-    <div class="topbar">
+  const T = tipTracking();
+  const row = (lab, s) => `<tr><td class="l">${lab}</td>${nc(s.n,0)}${nc(s.hit,0)}${pc(s.rate)}${pc(s.exp)}${dc(s.rate==null?null:s.rate - s.exp, null, false, 3)}</tr>`;
+  const tbl = (R, title) => `<h3>${title}</h3><table><thead class="single"><tr class="c"><th class="l">Liste</th><th>Tipps</th><th>Aufgegangen</th><th>Trefferquote</th><th>Erwartet</th><th>Diff.</th></tr></thead><tbody>
+    ${Object.entries(TIP_CATS).map(([k,v]) => row(`Top 10 je Tag: ${v}`, R[k])).join("")}
+    ${row("Alle Spiele: bester Tipp ab 70 %", R.p70)}${row("Alle Spiele: bester Tipp ab 80 %", R.p80)}</tbody></table>`;
+  return `<div class="pad"><div class="topbar">
       <div class="group"><span>Zeitraum</span>${seg("tr", state.topRange, [["today","Heute"],["week","Nächste 7 Tage"]])}</div>
-      <div class="group"><span>Liste</span>${seg("tk", state.topKind, [["prob","Wahrscheinlichste"],["value","Größter Vorteil"],["price","Bester Preis"]])}</div>
-      <label class="group"><span>Mindestquote</span><select id="t-min">${[1.2,1.3,1.4,1.5,1.7,2].map(v => `<option value="${v}" ${state.minOdds===v?"selected":""}>${fmt(v)}</option>`).join("")}</select></label>
-    </div>
-  </div>
-  ${list.length ? `<table><thead class="single"><tr class="c"><th class="l">#</th><th class="l">Anstoß</th><th class="l">Spiel</th><th class="l">Tipp</th><th>Wahrsch.</th><th>Fair</th><th>Beste Quote</th><th>Vorteil</th><th class="l">Weitere Signale</th></tr></thead><tbody>
-    ${list.map((x,i) => `<tr class="click" data-topfix="${esc(x.key)}" tabindex="0"><td class="l n"><b>${i+1}</b></td><td class="l">${esc(wd(x.f.d))} <span class="sub">${esc(koTime(x.f))}</span><br><span class="sub">${esc(sname(x.f.l))}</span></td>
-      <td class="l"><b>${esc(x.f.h)}</b><span class="vs">–</span><b>${esc(x.f.a)}</b></td><td class="l"><b>${esc(x.mk)}</b> <span class="sub">${esc(DCLAB[x.mk].slice(x.mk.length+1))}</span></td>
-      ${pc(x.pp)}${nc(100/x.pp)}${nc(x.oo)}<td class="n ${x.ev>=state.thr?"up hitup":x.ev<0?"sub":""}">${x.ev>0?"+":""}${fmt(x.ev,1)} %</td><td class="l">${extraSignals(x) || `<span class="sub">–</span>`}</td></tr>`).join("")}
-  </tbody></table>` : empty(state.topKind==="value"
-      ? "Derzeit kein Tipp mit Vorteil. Nach der Kalibrierung ist das häufig so: Der Markt ist meist richtig bepreist."
-      : state.topKind==="price" ? "Gerade kein Buchmacher deutlich über dem fairen Preis. Solche Ausreißer sind selten und verschwinden oft schnell."
-      : state.topRange==="today" ? "Heute keine Spiele mit Quoten in den gewählten Ligen. Schau in die 7-Tage-Liste." : "Keine Spiele mit Quoten im Zeitraum.")}
-  <div class="pad">
-    ${trTable(T.since, "Erfolgsquote seit 26.10.2026", "Für jeden Tag und jede Woche wird die Liste so nachgebaut, wie sie damals ausgesehen hätte: Prognose nur mit Spielen bis zum Vortag, abgerechnet zur besten Quote vor dem Spiel. Bei wenigen Tipps schwankt das stark.")}
-    ${trTable(T.before, "Zum Vergleich: dieselben Regeln vor dem 26.10.2026", "Achtung: Die Kalibrierung wurde aus genau diesen Spielen gelernt. Die Werte sind deshalb eher zu gut und dienen nur als Orientierung.")}
-    <p class="note sub">Trefferquote allein täuscht. Eine Liste mit 80 % Treffern verliert Geld, wenn die Quoten im Schnitt unter 1,25 liegen. Entscheidend ist die Spalte Rendite.</p>
-    <h3>Einzelne Tipps seit 26.10.2026</h3>
-    ${recent.length ? `<table><thead class="single"><tr class="c"><th class="l">Datum</th><th class="l">Liste</th><th class="l">Spiel</th><th class="l">Tipp</th><th>Wahrsch.</th><th>Quote</th><th>Ergebnis</th></tr></thead><tbody>
-      ${recent.map(p => { const w = wonMk(p.mk, p.m.hg, p.m.ag); return `<tr><td class="l">${esc(new Date(p.m.d+"T12:00:00").toLocaleDateString("de-AT"))}</td><td class="l sub">${p.kind}</td><td class="l">${esc(p.m.h)} – ${esc(p.m.a)}</td><td class="l"><b>${p.mk}</b></td>${pc(p.pp)}${nc(p.oo)}<td class="n"><b class="${w?"up":"down"}">${p.m.hg}:${p.m.ag} ${w?"✓":"✗"}</b></td></tr>`; }).join("")}
-    </tbody></table>` : `<p class="sub">Noch keine abgerechneten Spiele seit dem 26.10.2026. Die Tabelle füllt sich nach den ersten Spieltagen.</p>`}
-  </div>`;
+      <div class="group"><span>Tipp-Art</span>${seg("tc", state.topCat, Object.entries(TIP_CATS))}</div>
+    </div></div>
+  ${list.length ? `<table><thead class="single"><tr class="c"><th class="l">#</th><th class="l">Anstoß</th><th class="l">Spiel</th><th class="l">Tipp</th><th>Chance</th><th>Faire Quote</th><th>Erw. Tore</th><th class="l">Hinweise</th></tr></thead><tbody>
+    ${list.map((x,i) => `<tr class="click" data-topfix="${esc(fkey(x.f))}" tabindex="0"><td class="l n"><b>${i+1}</b></td><td class="l">${esc(wd(x.f.d))} <span class="sub">${esc(koTime(x.f))}</span><br><span class="sub">${esc(sname(x.f.l))}</span></td>
+      <td class="l"><b>${esc(x.f.h)}</b><span class="vs">–</span><b>${esc(x.f.a)}</b></td><td class="l"><b>${esc(x.t.lab)}</b></td>
+      ${pc(x.t.p)}${nc(100/x.t.p)}${nc(x.S.xh+x.S.xa,1)}<td class="l">${tipTags(x.f, x.t) || `<span class="sub">–</span>`}</td></tr>`).join("")}
+  </tbody></table>` : empty(state.topRange==="today" ? "Heute keine Spiele in den gewählten Ligen. Schau in die 7-Tage-Liste." : "Keine Spiele im Zeitraum.")}
+  <div class="pad">${tbl(T.since, "Wie oft gingen die Listen auf? Seit 26.10.2026")}${tbl(T.before, "Zum Vergleich: die zwei Jahre davor")}
+    <p class="sub note">Jede Liste ist so nachgebaut, wie sie am jeweiligen Tag ausgesehen hätte: Prognose nur mit Spielen bis zum Vortag. „Erwartet“ ist die durchschnittliche Chance der Tipps. Liegt die Trefferquote nahe daran, stimmen die Prozente.</p></div>`;
+}
+let TT = {key:null, res:null};
+function tipTracking(){
+  const key = PA.key + "|" + state.minFair; if(TT.key === key) return TT.res;
+  const {preds} = predictAll(), rho = EX.model && EX.model.params ? EX.model.params.rho : 0;
+  const items = preds.filter(x => x.lh!=null).map(x => ({m:x.m, P:probsFromLam(x.lh, x.la, rho)}));
+  const res = {};
+  for(const name of ["since","before"]){
+    const src = items.filter(x => name==="since" ? x.m.d >= TRACK_START : x.m.d < TRACK_START && x.m.d >= shiftDate(TRACK_START, -730));
+    const stat = picks => { let n=0, hit=0, sp=0; for(const p of picks){ n++; sp += p.t.p; if(tipWon(p.t.k, p.m.hg, p.m.ag)) hit++; } return {n, hit, rate:n ? hit/n*100 : null, exp:n ? sp/n : null}; };
+    const byDay = new Map(); for(const x of src){ if(!byDay.has(x.m.d)) byDay.set(x.m.d, []); byDay.get(x.m.d).push(x); }
+    res[name] = {};
+    for(const cat of Object.keys(TIP_CATS)){ const picks = [];
+      for(const [, g] of byDay) picks.push(...g.map(x => ({m:x.m, t:bestTip(x.P, null, cat)})).filter(p => p.t).sort((a,b) => b.t.p - a.t.p).slice(0,10));
+      res[name][cat] = stat(picks); }
+    const all = src.map(x => ({m:x.m, t:bestTip(x.P, null, "all")})).filter(p => p.t);
+    res[name].p70 = stat(all.filter(p => p.t.p >= 70)); res[name].p80 = stat(all.filter(p => p.t.p >= 80));
+  }
+  TT = {key, res}; return res;
 }
 function bindTop(){
   document.querySelectorAll('input[name="tr"]').forEach(i => i.addEventListener("change", () => { state.topRange = i.value; render(); }));
-  document.querySelectorAll('input[name="tk"]').forEach(i => i.addEventListener("change", () => { state.topKind = i.value; render(); }));
-  const s = $("#t-min"); if(s) s.addEventListener("change", e => { state.minOdds = +e.target.value; render(); });
+  document.querySelectorAll('input[name="tc"]').forEach(i => i.addEventListener("change", () => { state.topCat = i.value; render(); }));
   document.querySelectorAll("[data-topfix]").forEach(r => r.addEventListener("click", () => { const f = DB.fixtures.find(f => fkey(f) === r.dataset.topfix); if(f) openSheet(f); }));
 }
 
@@ -1436,19 +1477,22 @@ function bind(){
   $("#f-role").addEventListener("change", e => { state.role = e.target.value; render(); });
   $("#f-days").addEventListener("change", e => { state.days = +e.target.value; render(); });
   $("#f-min").addEventListener("input", e => { state.minGames = Math.max(1, +e.target.value || 1); render(); });
-  $("#f-thr").addEventListener("input", e => { state.thr = +e.target.value; $("#thr-out").textContent = state.thr; render(); });
   $("#f-sims").addEventListener("change", e => { state.sims = +e.target.value; render(); });
   $("#f-form").addEventListener("change", e => { state.decay = +e.target.value; render(); });
-  $("#f-w").value = state.wModel==null ? "auto" : String(state.wModel);
-  $("#f-w").addEventListener("change", e => { const v = e.target.value; state.wModel = v==="auto" ? null : +v;
-    try{ localStorage.setItem("tb_wmodel", v); }catch(err){} TR.key = null; render(); });
+  const pOpts = (arr, sel) => arr.map(v => `<option value="${v}" ${v===sel?"selected":""}>${v} %</option>`).join("");
+  $("#f-pmin").innerHTML = pOpts([40,50,55,60,65,70,75,80,85,90], state.tipMin); $("#f-pmax").innerHTML = pOpts([60,65,70,75,80,85,90,95,100], state.tipMax);
+  $("#f-sort").innerHTML = Object.entries(FB_SORT).map(([k,v]) => `<option value="${k}" ${k===state.fxSort?"selected":""}>${v[0]}</option>`).join("");
+  $("#f-tip").addEventListener("change", e => { state.tipKind = e.target.value; render(); });
+  $("#f-pmin").addEventListener("change", e => { state.tipMin = +e.target.value; render(); });
+  $("#f-pmax").addEventListener("change", e => { state.tipMax = +e.target.value; render(); });
+  $("#f-fair").addEventListener("change", e => { state.minFair = +e.target.value; TT.key = null; render(); });
+  $("#f-sort").addEventListener("change", e => { state.fxSort = e.target.value; render(); });
   ["#sh-h","#sh-a","#sh-sims"].forEach(s => $(s).addEventListener("input", renderSheet));
   $("#sh-re").addEventListener("click", () => { SH.salt++; renderSheet(); });
   document.querySelector(".stabs").addEventListener("click", e => { const b = e.target.closest("[data-st]"); if(b) showSheetTab(b.dataset.st); });
   document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", () => $("#"+b.dataset.close).close()));
   $("#sheet").addEventListener("click", e => { if(e.target === $("#sheet")) $("#sheet").close(); });
   $("#f-search").addEventListener("input", e => { state.search = e.target.value.trim().toLowerCase(); render(); });
-  $("#f-only").addEventListener("change", e => { state.only = e.target.checked; render(); });
   document.querySelector(".tabs").addEventListener("click", e => { const b = e.target.closest("button[data-tab]"); if(b){ state.tab = b.dataset.tab; render(); } });
   $("#out").addEventListener("click", e => {
     const s = e.target.closest("[data-sort]");
@@ -1524,7 +1568,7 @@ function makeDemo(){
 /* ===================== TENNIS ===================== */
 const TS = {tab:"fx", tours:new Set(["atp","wta"]), sf:"all", period:365, minM:8, sims:1500, thr:5, minOdds:1.3,
   w:(() => { try{ const v = localStorage.getItem("tb_tn_w"); return v===null ? 50 : +v; }catch(e){ return 50; } })(),
-  search:"", topRange:"week", topKind:"prob", sort:{fx:["start",1], pl:["elo",-1]}, ra:"", rb:"", rsf:"H", rbo:3};
+  search:"", topRange:"week", topKind:"fav", favMin:50, favMax:100, tbMin:0, fxSort:"p_desc", plKey:"spw", plBest:true, sort:{fx:["start",1], pl:["elo",-1]}, ra:"", rb:"", rsf:"H", rbo:3};
 let TN = null, TN_LOADING = false;
 const SFN = {H:"Hart", C:"Sand", G:"Rasen"};
 const clampP = (p, lo=.3, hi=.95) => Math.min(Math.max(p, lo), hi);
@@ -1613,7 +1657,7 @@ function tnPredict(a, b, sf, bo, tour){
 /* --- Simulation Spiel für Spiel --- */
 function simTennis(pa, pb, bo, n, seed){
   const r = rng(seed), ha = pGame(pa), hb = pGame(pb), need = (bo+1)/2;
-  let winA = 0, tbAny = 0, gsum = 0;
+  let winA = 0, tbAny = 0, gsum = 0, setsN = 0, tbSets = 0, tb1 = 0;
   const sets = new Map(), tot = new Map(), diff = new Map();
   for(let i=0;i<n;i++){
     let sA=0, sB=0, gA=0, gB=0, srvA = r() < .5, tbs = 0;
@@ -1624,20 +1668,20 @@ function simTennis(pa, pb, bo, n, seed){
           let x=0, y=0, k=0; const first = srvA;
           while(true){ const s = k===0 ? first : (Math.floor((k-1)/2)%2===0 ? !first : first); if(r() < (s ? pa : 1-pb)) x++; else y++; k++;
             if((x>=7 || y>=7) && Math.abs(x-y)>=2) break; }
-          if(x>y) a++; else b++; tbs++; srvA = !first; break;
+          if(x>y) a++; else b++; tbs++; tbSets++; if(sA + sB === 0) tb1++; srvA = !first; break;
         }
         const srvWins = r() < (srvA ? ha : hb);
         if(srvA){ if(srvWins) a++; else b++; } else { if(srvWins) b++; else a++; }
         srvA = !srvA;
         if((a>=6 || b>=6) && Math.abs(a-b)>=2) break;
       }
-      gA += a; gB += b; if(a>b) sA++; else sB++;
+      gA += a; gB += b; setsN++; if(a>b) sA++; else sB++;
     }
     if(sA > sB) winA++; if(tbs) tbAny++; gsum += gA+gB;
     const sk = `${sA}:${sB}`; sets.set(sk, (sets.get(sk)||0)+1);
     tot.set(gA+gB, (tot.get(gA+gB)||0)+1); diff.set(gA-gB, (diff.get(gA-gB)||0)+1);
   }
-  return {n, pA:winA/n*100, tb:tbAny/n*100, games:gsum/n, sets, tot, diff};
+  return {n, pA:winA/n*100, tb:tbAny/n*100, tb1:tb1/n*100, tbSet:tbSets/setsN*100, games:gsum/n, sets, tot, diff};
 }
 const share = (map, n, pred) => { let s = 0; for(const [k,v] of map) if(pred(k)) s += v; return s/n*100; };
 
@@ -1659,67 +1703,78 @@ function renderTSheet(){
   $("#ts-ao").textContent = (da>0?"+":"") + Math.round(da*100); $("#ts-bo").textContent = (db>0?"+":"") + Math.round(db*100);
   const pa = clampP(o.pa + da), pb = clampP(o.pb + db);
   const S = simTennis(pa, pb, o.bo, sims, hashStr(o.a+o.b+(o.start||"")) + TSH.salt);
-  const pmAdj = (da || db) ? S.pA : o.pm;     // ohne Regler: Modellwert, mit Regler: Simulation
-  const cal = calibTn(pmAdj, o.oa, o.ob), mk = o.oa && o.ob ? (1/o.oa)/((1/o.oa)+(1/o.ob))*100 : null;
-  const ev = (p, odds) => odds ? (p/100*odds - 1)*100 : null;
-  const evc = v => v==null ? `<td class="n">–</td>` : `<td class="n ${v > SUSPECT ? "warn" : v >= TS.thr ? "up hitup" : v < 0 ? "sub" : ""}">${v>0?"+":""}${fmt(v,1)} %</td>`;
-  const xa = o.xa || o.oa, xb = o.xb || o.ob;
-  const need = (o.bo+1)/2, setRows = [...S.sets.entries()].sort((x,y) => y[1]-x[1]);
+  const pA = (da || db) ? S.pA : o.pm, fav = pA >= 50 ? o.a : o.b, pf = Math.max(pA, 100-pA);
+  const setRows = [...S.sets.entries()].sort((x,y) => y[1]-x[1]);
   const lines = o.bo===5 ? [31.5,33.5,35.5,37.5,39.5,41.5] : [18.5,19.5,20.5,21.5,22.5,23.5,24.5];
-  const hc = [1.5,2.5,3.5,4.5,5.5];
   const tmax = Math.max(...S.tot.values()), tkeys = [...S.tot.keys()].sort((x,y) => x-y);
-  const A = pstats(o.a, o.sf, TS.period), B = pstats(o.b, o.sf, TS.period);
-  const cmp = [["Matches auf "+SFN[o.sf], "n", 0], ["Siegquote", "win", "p"], ["Elo gesamt", "elo", 0], ["Elo "+SFN[o.sf], {H:"eH",C:"eC",G:"eG"}[o.sf], 0],
-    ["Asse je Aufschlagspiel", "ace", 2], ["Doppelfehler je Aufschlagspiel", "df", 2], ["1. Aufschlag im Feld", "first", "p"], ["Punkte nach 1. Aufschlag", "firstW", "p"],
-    ["Punkte nach 2. Aufschlag", "secW", "p"], ["Aufschlagpunkte gewonnen", "spw", "p"], ["Aufschlagspiele gehalten", "hold", "p"], ["Breakbälle abgewehrt", "bpsv", "p"],
-    ["Returnpunkte gewonnen", "rpw", "p"], ["Breaks je Returnspiel", "brk", "p"], ["Tiebreaks gewonnen", "tb", "p"], ["Dominanz (Return / Aufschlag verloren)", "dr", 2]];
-  const cell = (v, t) => t==="p" ? pc(v) : nc(v, t);
-  const better = (k, a, b) => a==null || b==null ? ["",""] : (["df"].includes(k) ? a < b : a > b) ? ["best",""] : a===b ? ["",""] : ["","best"];
   const h2 = TN.matches.filter(m => (m.w===o.a && m.l===o.b) || (m.w===o.b && m.l===o.a)).sort((x,y) => x.d < y.d ? 1 : -1).slice(0,6);
   const form = p => (TN.byP.get(p) || []).slice().sort((x,y) => x.d < y.d ? 1 : -1).slice(0,10).reverse()
-    .map(m => `<i class="${m.w===p?"S":"N"}" title="${esc(m.d)} ${esc(m.tn)}: ${m.w===p ? "gegen "+esc(m.l) : "gegen "+esc(m.w)} ${esc(m.score||"")}">${m.w===p?"S":"N"}</i>`).join("");
+    .map(m => `<i class="${m.w===p?"S":"N"}" title="${esc(m.d)} ${esc(m.tn)}: gegen ${esc(m.w===p ? m.l : m.w)} ${esc(m.score||"")}">${m.w===p?"S":"N"}</i>`).join("");
   $("#ts-body").innerHTML = `
-    ${(!o.sa || !o.sb) ? `<p class="caution">Für ${!o.sa ? esc(o.a) : esc(o.b)} gibt es keine Aufschlagdaten aus dem letzten Jahr. Die Prognose stützt sich dort auf Elo und den Tourschnitt.</p>` : ""}
+    ${(!o.sa || !o.sb) ? `<p class="caution">Für ${!o.sa ? esc(o.a) : esc(o.b)} gibt es keine Aufschlagdaten aus dem letzten Jahr. Die Prognose stützt sich dort vor allem auf Elo.</p>` : ""}
     <div class="kpis">
-      <div><span>Siegchance ${esc(o.a)}</span><b>${fmt(pmAdj,1)} %</b><em>faire Quote ${fmt(100/pmAdj)}</em></div>
-      <div><span>Siegchance ${esc(o.b)}</span><b>${fmt(100-pmAdj,1)} %</b><em>faire Quote ${fmt(100/(100-pmAdj))}</em></div>
-      <div><span>Erwartete Spiele</span><b>${fmt(S.games,1)}</b><em>Tiebreak im Match: ${Math.round(S.tb)} %</em></div>
-      <div><span>Simulationen</span><b>${int(S.n)}</b><em>Aufschlagpunkte: ${fmt(pa*100,1)} % / ${fmt(pb*100,1)} %</em></div>
+      <div><span>Wahrscheinlicher Sieger</span><b>${esc(fav)}</b><em>${fmt(pf,1)} % Siegchance</em></div>
+      <div><span>Faire Quote zum Sieg</span><b>${fmt(100/pA)} / ${fmt(100/(100-pA))}</b><em>${esc(o.a)} / ${esc(o.b)}</em></div>
+      <div><span>Tiebreak im Match</span><b>${Math.round(S.tb)} %</b><em>im 1. Satz ${Math.round(S.tb1)} %, je Satz ${Math.round(S.tbSet)} %</em></div>
+      <div><span>Erwartete Spiele</span><b>${fmt(S.games,1)}</b><em>${int(S.n)} Simulationen</em></div>
     </div>
     <div class="cols">
       <section>
-        <h3>Sieger</h3>
-        <table><thead class="single"><tr class="c"><th class="l"></th><th>Modell</th><th>Elo</th><th>Quote</th><th>Markt</th><th>Value</th></tr></thead><tbody>
-          <tr><td class="l"><b>${esc(o.a)}</b></td>${pc(pmAdj)}${pc(o.pe)}${nc(xa)}${pc(mk)}${evc(ev(cal, xa))}</tr>
-          <tr><td class="l"><b>${esc(o.b)}</b></td>${pc(100-pmAdj)}${pc(o.pe==null?null:100-o.pe)}${nc(xb)}${pc(mk==null?null:100-mk)}${evc(ev(100-cal, xb))}</tr>
+        <h3>Sieg</h3>
+        <table><thead class="single"><tr class="c"><th class="l"></th><th>Siegchance</th><th>Faire Quote</th><th>Elo ${SFN[o.sf]}</th></tr></thead><tbody>
+          <tr><td class="l"><b>${esc(o.a)}</b></td>${pc(pA)}${nc(100/pA)}${pc(o.pe)}</tr>
+          <tr><td class="l"><b>${esc(o.b)}</b></td>${pc(100-pA)}${nc(100/(100-pA))}${pc(o.pe==null?null:100-o.pe)}</tr>
         </tbody></table>
-        <p class="sub note">Elo auf ${SFN[o.sf]}. Value mit Gewichtung Modell ${TS.w} % und Markt ${100-TS.w} % (${fmt(cal,1)} % für ${esc(o.a)}), gerechnet zur besten Quote.</p>
+        <h3>Tiebreak</h3>
+        <table><thead class="single"><tr class="c"><th class="l"></th><th>Chance</th><th>Faire Quote</th></tr></thead><tbody>
+          <tr><td class="l">Mindestens ein Tiebreak im Match</td>${pc(S.tb)}${nc(100/S.tb)}</tr>
+          <tr><td class="l">Tiebreak im 1. Satz</td>${pc(S.tb1)}${nc(100/S.tb1)}</tr>
+          <tr><td class="l">Kein Tiebreak</td>${pc(100-S.tb)}${nc(100/(100-S.tb))}</tr>
+        </tbody></table>
         <h3>Satzergebnis</h3>
         <table><tbody>${setRows.map(([k,v]) => `<tr><td class="l"><b>${k}</b> <span class="sub">${+k.split(":")[0] > +k.split(":")[1] ? esc(o.a) : esc(o.b)}</span></td>${pc(v/S.n*100)}${nc(100/(v/S.n*100))}</tr>`).join("")}</tbody></table>
+      </section>
+      <section>
         <h3>Gesamtspiele über / unter</h3>
         <table><thead class="single"><tr class="c"><th class="l">Linie</th><th>Über</th><th>Fair</th><th>Unter</th><th>Fair</th></tr></thead><tbody>
           ${lines.map(L => { const ov = share(S.tot, S.n, k => k > L); return `<tr><td class="l">${fmt(L,1)}</td>${pc(ov)}${nc(100/ov)}${pc(100-ov)}${nc(100/(100-ov))}</tr>`; }).join("")}
         </tbody></table>
-        <h3>Spiele-Handicap ${esc(o.a)}</h3>
-        <table><thead class="single"><tr class="c"><th class="l">Handicap</th><th>${esc(o.a)}</th><th>Fair</th></tr></thead><tbody>
-          ${hc.flatMap(H => [-H, H]).map(H => { const p = share(S.diff, S.n, d => d + H > 0); return `<tr><td class="l">${H>0?"+":""}${fmt(H,1)}</td>${pc(p)}${nc(100/p)}</tr>`; }).join("")}
-        </tbody></table>
-      </section>
-      <section>
-        <h3>Vergleich auf ${SFN[o.sf]}, letzte ${TS.period===365 ? "52 Wochen" : "2 Jahre"} bis ${esc(new Date((TN.meta.stats||TN.meta.results)+"T12:00:00").toLocaleDateString("de-AT"))}</h3>
-        <table class="cmp"><thead class="single"><tr class="c"><th class="l"></th><th>${esc(o.a)}</th><th>${esc(o.b)}</th></tr></thead><tbody>
-          ${cmp.map(([lab, k, t]) => { const [ba, bb] = better(k, A[k], B[k]); return `<tr><td class="l">${lab}</td>${cell(A[k],t).replace('<td class="n', `<td class="n ${ba}`)}${cell(B[k],t).replace('<td class="n', `<td class="n ${bb}`)}</tr>`; }).join("")}
-          <tr><td class="l">Form, letzte 10</td><td class="l"><span class="form">${form(o.a)}</span></td><td class="l"><span class="form">${form(o.b)}</span></td></tr>
-        </tbody></table>
         <h3>Gesamtspiele, Verteilung</h3>
         <div class="bars">${tkeys.filter(k => S.tot.get(k)/S.n >= .004).map(k => `<div class="bar"><span>${k}</span><i style="width:${S.tot.get(k)/tmax*100}%"></i><b>${fmt(S.tot.get(k)/S.n*100,1)} %</b></div>`).join("")}</div>
+        <h3>Form, letzte 10</h3>
+        <table><tbody><tr><td class="l">${esc(o.a)}</td><td class="l"><span class="form">${form(o.a)}</span></td></tr><tr><td class="l">${esc(o.b)}</td><td class="l"><span class="form">${form(o.b)}</span></td></tr></tbody></table>
         <h3>Direkter Vergleich</h3>
         ${h2.length ? `<table><tbody>${h2.map(m => `<tr><td class="l">${esc(new Date(m.d+"T12:00:00").toLocaleDateString("de-AT"))}</td><td class="l">${esc(m.tn)} <span class="sub">${SFN[m.sf]||""}</span></td><td class="l"><b>${esc(m.w)}</b></td><td class="n">${esc(m.score||"")}</td></tr>`).join("")}</tbody></table>` : `<p class="sub">Keine Duelle in den geladenen Daten.</p>`}
       </section>
-    </div>`;
+    </div>
+    <h3 class="full">Wer hat die besseren Zahlen? Alle Beläge, ${TS.period===365 ? "letzte 52 Wochen" : "letzte 2 Jahre"} bis ${esc(new Date((TN.meta.stats||TN.meta.results)+"T12:00:00").toLocaleDateString("de-AT"))}</h3>
+    ${surfaceCompare(o.a, o.b, o.sf)}
+    <p class="sub note">Grün = besserer Wert im direkten Vergleich auf diesem Belag. Bei Doppelfehlern ist weniger besser. Der Belag dieses Matches ist hinterlegt. Die Zählung oben gewichtet jeden Wert gleich: Starke Aufschläger liegen dadurch oft „vorne“, obwohl Dominanz, Elo und Returnwerte mehr über die Siegchance sagen.</p>`;
 }
 
-/* --- Ansichten --- */
+/* Vergleich zweier Spieler auf allen drei Belägen, bessere Werte grün */
+const CMP = [["Matches", "n", 0, 0], ["Siegquote", "win", "p", 1], ["Elo Belag", "esf", 0, 1], ["Asse je Aufschlagspiel", "ace", 2, 1], ["Doppelfehler je Aufschlagspiel", "df", 2, -1],
+  ["1. Aufschlag im Feld", "first", "p", 1], ["Punkte nach 1. Aufschlag", "firstW", "p", 1], ["Punkte nach 2. Aufschlag", "secW", "p", 1], ["Aufschlagpunkte gewonnen", "spw", "p", 1],
+  ["Aufschlagspiele gehalten", "hold", "p", 1], ["Breakbälle abgewehrt", "bpsv", "p", 1], ["Returnpunkte gewonnen", "rpw", "p", 1], ["Breaks je Returnspiel", "brk", "p", 1],
+  ["Tiebreaks gewonnen", "tb", "p", 1], ["Dominanz", "dr", 2, 1]];
+function statLead(A, B){
+  let a = 0, b = 0;
+  if(A.ns < 3 || B.ns < 3) return null;
+  for(const [, k, , dir] of CMP){ if(!dir || A[k]==null || B[k]==null || A[k]===B[k]) continue; if((A[k] > B[k]) === (dir > 0)) a++; else b++; }
+  return {a, b};
+}
+function surfaceCompare(a, b, focus){
+  const S = {}; for(const sf of ["H","C","G"]){ const A = pstats(a, sf, TS.period), B = pstats(b, sf, TS.period); A.esf = A[{H:"eH",C:"eC",G:"eG"}[sf]]; B.esf = B[{H:"eH",C:"eC",G:"eG"}[sf]]; S[sf] = {A, B, lead:statLead(A, B)}; }
+  const cell = (v, t, cls) => `<td class="n ${cls}">${v==null ? "–" : t==="p" ? Math.round(v)+" %" : fmt(v, t)}</td>`;
+  const win = (sf, k, dir) => { const A = S[sf].A[k], B = S[sf].B[k]; if(!dir || A==null || B==null || A===B) return ["",""]; return (A > B) === (dir > 0) ? ["best",""] : ["","best"]; };
+  const head = sf => { const L = S[sf].lead; return L ? (L.a > L.b ? `<b>${esc(a)}</b> vorne, ${L.a}:${L.b}` : L.b > L.a ? `<b>${esc(b)}</b> vorne, ${L.b}:${L.a}` : `ausgeglichen ${L.a}:${L.b}`) : "zu wenige Daten"; };
+  return `<div class="sfsum">${["H","C","G"].map(sf => `<div class="${sf===focus?"on":""}"><span>${SFN[sf]}${sf===focus?" (dieses Match)":""}</span>${head(sf)}</div>`).join("")}</div>
+    <div class="cmpwrap"><table class="cmp3"><thead class="single"><tr class="c"><th class="l"></th>${["H","C","G"].map(sf => `<th colspan="2" class="${sf===focus?"on":""}">${SFN[sf]}</th>`).join("")}</tr>
+      <tr class="c"><th class="l"></th>${["H","C","G"].map(() => `<th>${esc(a.split(" ").slice(-1)[0])}</th><th>${esc(b.split(" ").slice(-1)[0])}</th>`).join("")}</tr></thead>
+      <tbody>${CMP.map(([lab, k, t, dir]) => `<tr><td class="l">${lab}</td>${["H","C","G"].map(sf => { const [x,y] = win(sf, k, dir); return cell(S[sf].A[k], t, x+(sf===focus?" on":"")) + cell(S[sf].B[k], t, y+(sf===focus?" on":"")); }).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+
+
 function tnFixtures(){
   const now = new Date().toISOString();
   return TN.fixtures.filter(f => TS.tours.has(f.tour) && (TS.sf==="all" || f.sf===TS.sf) && f.start >= now &&
@@ -1735,94 +1790,82 @@ function noKeyHelp(){
     </ol>
     <p class="sub">Bis dahin kannst du jedes Duell im Reiter „Matchup-Rechner“ selbst durchrechnen.</p></div>`;
 }
+
+/* --- Ansichten --- */
+const FX_SORT = {p_desc:["Sicherster Favorit zuerst", r => -r.pf], p_asc:["Knappste Matches zuerst", r => r.pf], tb_desc:["Höchste Tiebreak-Chance", r => -r.tb], tb_asc:["Niedrigste Tiebreak-Chance", r => r.tb],
+  g_desc:["Meiste Spiele", r => -r.games], g_asc:["Wenigste Spiele", r => r.games], start:["Nach Termin", r => r.f.start]};
 function renderTnFx(){
   const fx = tnFixtures();
-  $("#tn-lead").textContent = `Kommende Matches mit Modell (Belag-Elo + Aufschlag/Return), ${int(TS.sims)} Simulationen je Match. Klick auf eine Zeile öffnet das Spielblatt mit Sätzen, Gesamtspielen, Handicap und Statistik-Vergleich.`;
+  $("#tn-lead").textContent = `Wer gewinnt wahrscheinlich, was wäre die faire Quote, wie wahrscheinlich ist ein Tiebreak. Jedes Match ${int(TS.sims)}-mal Spiel für Spiel simuliert. „Zahlen-Vorteil“: wer auf dem Belag des Matches in mehr Statistikwerten vorne liegt. Klick auf eine Zeile für den Belag-Vergleich.`;
   if(!TN.fixtures.length) return TN.meta.note==="kein_key" ? noKeyHelp() : empty("Gerade keine kommenden Matches erfasst.");
-  if(!fx.length) return empty("Keine Matches für diese Auswahl.");
-  const rows = fx.map(f => { const S = simTennis(f.pa, f.pb, f.bo, TS.sims, hashStr(f.key));
-    const cal = calibTn(f.pm, f.oa, f.ob), mk = f.oa && f.ob ? (1/f.oa)/((1/f.oa)+(1/f.ob))*100 : null;
-    const va = f.xa ? (cal/100*f.xa-1)*100 : null, vb = f.xb ? ((100-cal)/100*f.xb-1)*100 : null;
-    const best = va==null && vb==null ? null : (va ?? -1e9) >= (vb ?? -1e9) ? {p:f.a, v:va, o:f.xa} : {p:f.b, v:vb, o:f.xb};
-    return {f, S, cal, mk, best, start:f.start, pm:f.pm, ev:best ? best.v : null, games:S.games, tb:S.tb}; });
-  const [k, dir] = TS.sort.fx; rows.sort((x,y) => { const a = x[k], b = y[k]; if(a==null) return 1; if(b==null) return -1; return (typeof a==="string" ? a.localeCompare(b) : a-b)*dir; });
+  let rows = fx.map(f => { const S = simTennis(f.pa, f.pb, f.bo, TS.sims, hashStr(f.key)), pA = f.pm, fav = pA >= 50 ? f.a : f.b, dog = pA >= 50 ? f.b : f.a, pf = Math.max(pA, 100-pA);
+    const L = statLead(pstats(f.a, f.sf, TS.period), pstats(f.b, f.sf, TS.period));
+    return {f, S, fav, dog, pf, tb:S.tb, tb1:S.tb1, games:S.games, lead:L}; })
+    .filter(r => r.pf >= TS.favMin && r.pf <= TS.favMax && r.tb >= TS.tbMin);
+  if(!rows.length) return empty("Keine Matches für diese Auswahl. Filter für Siegchance oder Tiebreak lockern.");
+  const key = FX_SORT[TS.fxSort][1]; rows.sort((x,y) => { const a = key(x), b = key(y); return typeof a==="string" ? a.localeCompare(b) : a-b; });
   TN._fx = rows;
-  const thT = (key, lab, cls="") => `<th class="${cls}"${TS.sort.fx[0]===key ? ` aria-sort="${TS.sort.fx[1]>0?"ascending":"descending"}"` : ""}><button type="button" data-tsort="fx:${key}">${lab}</button></th>`;
-  return `<table><thead><tr class="g">${gh("",2,"stick gl")}${gh("Siegchance Spieler 1",4,"gl sep")}${gh("Quoten (beste)",2,"gl sep")}${gh("Bester Value",2,"gl sep")}${gh("Simulation",2,"gl sep")}</tr>
-    <tr class="c">${thT("start","Termin","l stick")}<th class="l">Match</th>${thT("pm","Modell","sep")}<th>Elo Belag</th><th>Kalib.</th><th>Markt</th>
-    <th class="sep">Spieler 1</th><th>Spieler 2</th><th class="l sep">Tipp</th>${thT("ev","Value")}${thT("games","Ø Spiele","sep")}${thT("tb","Tiebreak")}</tr></thead>
+  const leadTxt = (r) => { const L = r.lead; if(!L) return `<span class="sub">wenig Daten</span>`; if(L.a===L.b) return `<span class="sub">ausgeglichen ${L.a}:${L.b}</span>`;
+    const who = L.a > L.b ? r.f.a : r.f.b, n = Math.max(L.a,L.b), m = Math.min(L.a,L.b); return `${esc(who.split(" ").slice(-1)[0])} <span class="sub">${n}:${m}</span>`; };
+  return `<table><thead><tr class="g">${gh("",2,"stick gl")}${gh("Sieg",4,"gl sep")}${gh("Tiebreak",2,"gl sep")}${gh("Spiele",1,"gl sep")}${gh("Zahlen-Vorteil",1,"gl sep")}</tr>
+    <tr class="c"><th class="l stick">Termin</th><th class="l">Match</th><th class="l sep">Wahrscheinlicher Sieger</th><th>Siegchance</th><th>Faire Quote</th><th>Faire Quote Gegner</th>
+    <th class="sep">im Match</th><th>1. Satz</th><th class="sep">Ø</th><th class="l sep">auf diesem Belag</th></tr></thead>
     <tbody>${rows.map((r,i) => `<tr class="click" data-tfx="${i}" tabindex="0">
       <td class="l stick">${esc(new Date(r.f.start).toLocaleString("de-AT",{weekday:"short",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}))}<br><span class="sub">${esc(r.f.title)} · ${SFN[r.f.sf]}${r.f.bo===5?" · Bo5":""}</span></td>
-      <td class="l"><b>${esc(r.f.a)}</b><span class="vs">–</span><b>${esc(r.f.b)}</b>${(!r.f.sa||!r.f.sb) ? ` <span class="tag" title="Für mindestens einen Spieler fehlen Aufschlagdaten">wenig Daten</span>` : ""}</td>
-      ${pc(r.f.pm,true)}${pc(r.f.pe)}${pc(r.cal)}${pc(r.mk)}${nc(r.f.xa||r.f.oa,2,true)}${nc(r.f.xb||r.f.ob)}
-      <td class="l sep">${r.best ? esc(r.best.p) : "–"}</td><td class="n ${r.best && r.best.v > SUSPECT ? "warn" : r.best && r.best.v >= TS.thr ? "up hitup" : "sub"}">${r.best && r.best.v!=null ? (r.best.v>0?"+":"")+fmt(r.best.v,1)+" %" : "–"}</td>
-      ${nc(r.games,1,true)}${pc(r.tb)}</tr>`).join("")}</tbody></table>`;
+      <td class="l">${esc(r.f.a)}<span class="vs">–</span>${esc(r.f.b)}${(!r.f.sa||!r.f.sb) ? ` <span class="tag" title="Für mindestens einen Spieler fehlen Aufschlagdaten">wenig Daten</span>` : ""}</td>
+      <td class="l sep"><b>${esc(r.fav)}</b></td>${pc(r.pf)}${nc(100/r.pf)}${nc(100/(100-r.pf))}
+      ${pc(r.tb,true)}${pc(r.tb1)}${nc(r.games,1,true)}<td class="l sep">${leadTxt(r)}</td></tr>`).join("")}</tbody></table>`;
 }
-function tnTopItems(){
-  return tnFixtures().filter(f => f.xa || f.oa).map(f => {
-    const cal = calibTn(f.pm, f.oa, f.ob), mk = f.oa && f.ob ? (1/f.oa)/((1/f.oa)+(1/f.ob))*100 : null;
-    return [{f, who:f.a, p:TS.topKind==="price" ? mk : cal, o:f.xa || f.oa}, {f, who:f.b, p:TS.topKind==="price" ? (mk==null?null:100-mk) : 100-cal, o:f.xb || f.ob}]; });
+function renderTnTop(){
+  const lim = new Date(); lim.setDate(lim.getDate() + (TS.topRange==="today" ? 1 : 7));
+  const all = tnFixtures().filter(f => new Date(f.start) <= lim).map(f => { const S = simTennis(f.pa, f.pb, f.bo, TS.sims, hashStr(f.key)), pf = Math.max(f.pm, 100-f.pm);
+    return {f, fav:f.pm >= 50 ? f.a : f.b, pf, tb:S.tb, games:S.games}; });
+  const kinds = {fav:["Sicherste Favoriten", (a,b) => b.pf - a.pf], close:["Knappste Matches", (a,b) => a.pf - b.pf], tb:["Höchste Tiebreak-Chance", (a,b) => b.tb - a.tb], notb:["Geringste Tiebreak-Chance", (a,b) => a.tb - b.tb]};
+  const list = all.sort(kinds[TS.topKind][1]).slice(0,10);
+  $("#tn-lead").textContent = `${kinds[TS.topKind][0]}, ${TS.topRange==="today" ? "heute" : "nächste 7 Tage"}. Faire Quote = 100 geteilt durch die Siegchance laut Modell.`;
+  const seg = (name, val, opts) => `<div class="seg">${opts.map(([v,l]) => `<label><input type="radio" name="${name}" value="${v}" ${val===v?"checked":""}>${l}</label>`).join("")}</div>`;
+  const acc = tnAccuracy();
+  const accRow = (lab, s) => `<tr><td class="l">${lab}</td>${nc(s.n,0)}${nc(s.hit,0)}${pc(s.rate)}${pc(s.exp)}</tr>`;
+  const accT = (R, title) => `<h3>${title}</h3><table><thead class="single"><tr class="c"><th class="l">Favorit laut Modell</th><th>Matches</th><th>Favorit gewann</th><th>Trefferquote</th><th>Erwartet</th></tr></thead><tbody>
+    ${accRow("Alle Matches", R.all)}${accRow("Siegchance ab 60 %", R.p60)}${accRow("Siegchance ab 70 %", R.p70)}${accRow("Siegchance ab 80 %", R.p80)}
+    ${accRow("Top 10 sicherste je Tag", R.top10)}</tbody></table>`;
+  return `<div class="pad"><div class="topbar">
+      <div class="group"><span>Zeitraum</span>${seg("ttr", TS.topRange, [["today","Heute"],["week","Nächste 7 Tage"]])}</div>
+      <div class="group"><span>Liste</span>${seg("ttk", TS.topKind, Object.entries(kinds).map(([k,v]) => [k, v[0]]))}</div>
+    </div></div>
+    ${!TN.fixtures.length && TN.meta.note==="kein_key" ? noKeyHelp() : list.length ? `<table><thead class="single"><tr class="c"><th class="l">#</th><th class="l">Termin</th><th class="l">Match</th><th class="l">Wahrscheinlicher Sieger</th><th>Siegchance</th><th>Faire Quote</th><th>Tiebreak</th><th>Ø Spiele</th></tr></thead><tbody>
+      ${list.map((x,i) => `<tr class="click" data-tkey="${esc(x.f.key)}"><td class="l n"><b>${i+1}</b></td><td class="l">${esc(new Date(x.f.start).toLocaleString("de-AT",{weekday:"short",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}))}<br><span class="sub">${esc(x.f.title)} · ${SFN[x.f.sf]}</span></td>
+        <td class="l">${esc(x.f.a)} – ${esc(x.f.b)}</td><td class="l"><b>${esc(x.fav)}</b></td>${pc(x.pf)}${nc(100/x.pf)}${pc(x.tb)}${nc(x.games,1)}</tr>`).join("")}</tbody></table>`
+      : empty("Keine Matches im Zeitraum.")}
+    <div class="pad">${accT(acc.since, "Trefferquote seit 26.10.2026")}${accT(acc.before, "Zum Vergleich: die zwei Jahre davor")}
+      <p class="sub note">Jede Prognose nur mit Daten vor dem Match. „Erwartet“ ist die durchschnittliche Siegchance, die das Modell den Favoriten gegeben hat. Liegt die Trefferquote nahe daran, stimmen die Prozente.</p></div>`;
 }
-function tnPick(pairs, kind){
-  const c = [];
-  for(const pr of pairs){ let best = null;
-    for(const x of pr){ if(x.p==null || !x.o) continue; const ev = (x.p/100*x.o-1)*100;
-      const ok = kind==="prob" ? x.o >= TS.minOdds : ev >= (kind==="price" ? TS.thr : 1) && ev <= SUSPECT;
-      if(!ok) continue; const score = kind==="prob" ? x.p : ev; if(!best || score > best.score) best = {...x, ev, score}; }
-    if(best) c.push(best); }
-  return c.sort((a,b) => b.score - a.score).slice(0,10);
-}
-function tnTracking(){
-  const rows = (TN.model.rows || []).map(r => ({tour:r[0], d:r[1], w:r[3], l:r[4], p:r[5], ow:r[6], ol:r[7], xw:r[8], xl:r[9]}))
-    .filter(r => TS.tours.has(r.tour) && (r.xw || r.ow));
-  const pairs = r => { const cal = calibTn(r.p, r.ow, r.ol), mk = r.ow && r.ol ? (1/r.ow)/((1/r.ow)+(1/r.ol))*100 : null;
-    return {r, pr:[{who:r.w, won:true, p:null, o:r.xw || r.ow, cal, mk}, {who:r.l, won:false, o:r.xl || r.ol, cal:100-cal, mk:mk==null?null:100-mk}]}; };
+function tnAccuracy(){
+  const rows = (TN.model.rows || []).filter(r => TS.tours.has(r[0]) && (TS.sf==="all" || r[2]===TS.sf));
+  const mk = arr => { let n=0, hit=0, sp=0; for(const r of arr){ const pf = Math.max(r[5], 100-r[5]); n++; sp += pf; if(r[5] > 50) hit++; } return {n, hit, rate:n ? hit/n*100 : null, exp:n ? sp/n : null}; };
   const res = {};
   for(const name of ["since","before"]){
-    res[name] = {};
-    const src = rows.filter(r => name==="since" ? r.d >= TN.meta.track : r.d < TN.meta.track).map(pairs);
-    for(const kind of ["prob","value","price"]){
-      const by = (f) => { const g = new Map(); for(const x of src){ const k = f(x.r.d); if(!g.has(k)) g.set(k, []); g.get(k).push(x.pr.map(y => ({...y, p:kind==="price" ? y.mk : y.cal}))); } return g; };
-      const stat = picks => { let hit=0, pl=0, so=0, sp=0; for(const p of picks){ hit += p.won; pl += p.won ? p.o-1 : -1; so += p.o; sp += p.p; }
-        const n = picks.length; return {n, hit, rate:n ? hit/n*100 : null, exp:n ? sp/n : null, odds:n ? so/n : null, roi:n ? pl/n*100 : null}; };
-      const run = f => { const out = []; for(const [, g] of by(f)) out.push(...tnPick(g, kind)); return out; };
-      res[name][kind] = {day:stat(run(d => d)), week:stat(run(d => weekStart(d)))};
-    }
+    const src = rows.filter(r => name==="since" ? r[1] >= TN.meta.track : r[1] < TN.meta.track && r[1] >= shiftDate(TN.meta.track, -730));
+    const f = t => src.filter(r => Math.max(r[5], 100-r[5]) >= t);
+    const byDay = new Map(); for(const r of src){ if(!byDay.has(r[1])) byDay.set(r[1], []); byDay.get(r[1]).push(r); }
+    const top = []; for(const [, g] of byDay) top.push(...g.sort((a,b) => Math.max(b[5],100-b[5]) - Math.max(a[5],100-a[5])).slice(0,10));
+    res[name] = {all:mk(src), p60:mk(f(60)), p70:mk(f(70)), p80:mk(f(80)), top10:mk(top)};
   }
   return res;
 }
-function renderTnTop(){
-  const pairs = tnTopItems().filter(pr => { const d = new Date(pr[0].f.start), lim = new Date(); lim.setDate(lim.getDate() + (TS.topRange==="today" ? 1 : 7)); return d <= lim; });
-  const list = tnPick(pairs, TS.topKind), T = tnTracking();
-  const kindTxt = {prob:`Die zehn Siegtipps mit der höchsten Wahrscheinlichkeit, nur ab Quote ${fmt(TS.minOdds)}.`, value:"Die zehn Tipps, bei denen die kalibrierte Siegchance am weitesten über der besten Quote liegt.", price:`Ohne Modell: beste Quote mindestens ${TS.thr} % über dem fairen Pinnacle-Preis.`}[TS.topKind];
-  $("#tn-lead").textContent = `${kindTxt} Je Match nur ein Tipp. Gewichtung Modell ${TS.w} %, Markt ${100-TS.w} %.`;
-  const seg = (name, val, opts) => `<div class="seg">${opts.map(([v,l]) => `<label><input type="radio" name="${name}" value="${v}" ${val===v?"checked":""}>${l}</label>`).join("")}</div>`;
-  const statRow = (label, s) => `<tr><td class="l">${label}</td>${nc(s.n,0)}${nc(s.hit,0)}${pc(s.rate)}${pc(s.exp)}${nc(s.odds)}<td class="n ${s.roi>0?"up":s.roi<0?"down":""}">${s.roi==null ? "–" : (s.roi>0?"+":"")+fmt(s.roi,1)+" %"}</td></tr>`;
-  const trT = (R, title) => `<h3>${title}</h3><table><thead class="single"><tr class="c"><th class="l">Liste</th><th>Tipps</th><th>Treffer</th><th>Trefferquote</th><th>Erwartet</th><th>Ø Quote</th><th>Rendite</th></tr></thead><tbody>
-    ${statRow("Täglich, wahrscheinlichste", R.prob.day)}${statRow("Täglich, größter Vorteil", R.value.day)}${statRow("Täglich, bester Preis", R.price.day)}
-    ${statRow("Wöchentlich, wahrscheinlichste", R.prob.week)}${statRow("Wöchentlich, größter Vorteil", R.value.week)}${statRow("Wöchentlich, bester Preis", R.price.week)}</tbody></table>`;
-  return `<div class="pad"><div class="topbar">
-      <div class="group"><span>Zeitraum</span>${seg("ttr", TS.topRange, [["today","Heute"],["week","Nächste 7 Tage"]])}</div>
-      <div class="group"><span>Liste</span>${seg("ttk", TS.topKind, [["prob","Wahrscheinlichste"],["value","Größter Vorteil"],["price","Bester Preis"]])}</div>
-      <label class="group"><span>Mindestquote</span><select id="tt-min">${[1.2,1.3,1.4,1.5,1.7,2].map(v => `<option value="${v}" ${TS.minOdds===v?"selected":""}>${fmt(v)}</option>`).join("")}</select></label>
-    </div></div>
-    ${!TN.fixtures.length && TN.meta.note==="kein_key" ? noKeyHelp() : list.length ? `<table><thead class="single"><tr class="c"><th class="l">#</th><th class="l">Termin</th><th class="l">Match</th><th class="l">Tipp</th><th>Wahrsch.</th><th>Fair</th><th>Beste Quote</th><th>Vorteil</th></tr></thead><tbody>
-      ${list.map((x,i) => `<tr class="click" data-tkey="${esc(x.f.key)}"><td class="l n"><b>${i+1}</b></td><td class="l">${esc(new Date(x.f.start).toLocaleString("de-AT",{weekday:"short",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}))}<br><span class="sub">${esc(x.f.title)} · ${SFN[x.f.sf]}</span></td>
-        <td class="l">${esc(x.f.a)} – ${esc(x.f.b)}</td><td class="l"><b>${esc(x.who)}</b> gewinnt</td>${pc(x.p)}${nc(100/x.p)}${nc(x.o)}<td class="n ${x.ev>=TS.thr?"up hitup":x.ev<0?"sub":""}">${x.ev>0?"+":""}${fmt(x.ev,1)} %</td></tr>`).join("")}</tbody></table>`
-      : empty("Keine passenden Tipps im Zeitraum.")}
-    <div class="pad">${trT(T.since, "Erfolgsquote seit 26.10.2026")}${trT(T.before, "Zum Vergleich: dieselben Regeln vorher (nur Matches mit Quoten)")}
-      <p class="sub note">Abgerechnet wird zur besten Quote vor dem Match. Quoten für vergangene Matches stammen von tennis-data.co.uk. Fehlen sie, bleiben diese Tabellen leer.</p></div>`;
-}
 function renderTnCalc(){
-  $("#tn-lead").textContent = "Zwei beliebige Spieler, Belag und Best-of wählen. Das Board rechnet mit demselben Modell wie bei kommenden Matches und simuliert das Duell Spiel für Spiel.";
+  $("#tn-lead").textContent = "Zwei beliebige Spieler, Belag und Best-of wählen. Ergebnis: wahrscheinlicher Sieger, faire Quote, Tiebreak-Chance und der Zahlenvergleich auf allen Belägen.";
   return `<div class="pad"><div class="topbar">
     <label class="group"><span>Spieler 1</span><input type="search" id="rc-a" list="tn-players" value="${esc(TS.ra)}" placeholder="z. B. Jannik Sinner"></label>
     <label class="group"><span>Spieler 2</span><input type="search" id="rc-b" list="tn-players" value="${esc(TS.rb)}" placeholder="z. B. Carlos Alcaraz"></label>
     <label class="group"><span>Belag</span><select id="rc-sf">${["H","C","G"].map(s => `<option value="${s}" ${TS.rsf===s?"selected":""}>${SFN[s]}</option>`).join("")}</select></label>
     <label class="group"><span>Modus</span><select id="rc-bo"><option value="3" ${TS.rbo===3?"selected":""}>Best of 3</option><option value="5" ${TS.rbo===5?"selected":""}>Best of 5</option></select></label>
     <button type="button" class="btn" id="rc-go">Simulieren</button>
-  </div><p class="sub" id="rc-msg">Namen wie im Archiv, z. B. „Alexander Zverev“. Die Liste schlägt beim Tippen vor.</p></div>`;
+  </div><p class="sub" id="rc-msg">Namen wie im Archiv, z. B. „Alexander Zverev“. Die Liste schlägt beim Tippen vor. Tipp: Im Reiter „Spieler“ auf einen Namen klicken übernimmt ihn hierher.</p></div>`;
 }
+const PL_COLS = [["n","Matches",0,1],["win","Siege","p",1],["elo","Elo",0,1],["esf","Elo Belag",0,1],["dr","Dominanz",2,1],["ace","Asse/AS",2,1],["df","DF/AS",2,-1],["first","1. Aufschl.","p",1],
+  ["firstW","Pkt. 1.","p",1],["secW","Pkt. 2.","p",1],["spw","Aufschlagpkt.","p",1],["hold","Gehalten","p",1],["bpsv","BB abgewehrt","p",1],["rpw","Returnpkt.","p",1],["brk","Breaks","p",1],
+  ["bpc","BB-Chancen/RS",2,1],["tb","Tiebreaks","p",1],["tbn","TB gespielt",0,1]];
 function renderTnPlayers(){
   const rows = [];
   for(const [p] of TN.byP){
@@ -1830,48 +1873,39 @@ function renderTnPlayers(){
     const s = pstats(p, TS.sf, TS.period); if(!s.tour || !TS.tours.has(s.tour) || s.n < TS.minM) continue;
     s.esf = TS.sf==="all" ? null : s[{H:"eH",C:"eC",G:"eG"}[TS.sf]]; rows.push(s);
   }
-  $("#tn-lead").textContent = `Spielerwerte ${TS.sf==="all" ? "auf allen Belägen" : "auf "+SFN[TS.sf]}, ${TS.period===365 ? "letzte 52 Wochen" : "letzte 2 Jahre"} bis zum Datenstand. Klick auf einen Namen übernimmt ihn in den Matchup-Rechner.`;
-  if(!rows.length) return empty("Keine Spieler mit genug Matches.");
-  const [k, dir] = TS.sort.pl; rows.sort((x,y) => { const a = x[k], b = y[k]; if(a==null) return 1; if(b==null) return -1; return (typeof a==="string" ? a.localeCompare(b) : a-b)*dir; });
-  const thP = (key, lab, cls="") => `<th class="${cls}"${TS.sort.pl[0]===key ? ` aria-sort="${TS.sort.pl[1]>0?"ascending":"descending"}"` : ""}><button type="button" data-tsort="pl:${key}">${lab}</button></th>`;
-  return `<table><thead><tr class="g">${gh("",3,"stick gl")}${gh("Stärke",3,"gl sep")}${gh("Aufschlag",8,"gl sep")}${gh("Return",3,"gl sep")}${gh("Druck",2,"gl sep")}</tr>
-    <tr class="c">${thP("name","Spieler","l stick")}${thP("n","Matches")}${thP("win","Siege")}
-    ${thP("elo","Elo","sep")}${thP("esf",TS.sf==="all" ? "Elo Belag" : "Elo "+SFN[TS.sf])}${thP("dr","Dominanz")}
-    ${thP("ace","Asse/AS","sep")}${thP("df","DF/AS")}${thP("first","1. Aufschl.")}${thP("firstW","Pkt. 1.")}${thP("secW","Pkt. 2.")}${thP("spw","Aufschlagpkt.")}${thP("hold","Gehalten")}${thP("bpsv","BB abgewehrt")}
-    ${thP("rpw","Returnpkt.","sep")}${thP("brk","Breaks")}${thP("bpc","BB-Chancen/RS")}
-    ${thP("tb","Tiebreaks","sep")}${thP("tbn","TB gespielt")}</tr></thead>
-    <tbody>${rows.slice(0,400).map(s => `<tr><td class="l stick"><button class="team" data-tpl="${esc(s.name)}">${esc(s.name)}</button> <span class="sub">${s.tour.toUpperCase()}</span></td>${nc(s.n,0)}${pc(s.win)}
-      ${nc(s.elo,0,true)}${nc(s.esf,0)}${nc(s.dr,2)}
-      ${nc(s.ace,2,true)}${nc(s.df,2)}${pc(s.first)}${pc(s.firstW)}${pc(s.secW)}${pc(s.spw)}${pc(s.hold)}${pc(s.bpsv)}
-      ${pc(s.rpw,true)}${pc(s.brk)}${nc(s.bpc,2)}${pc(s.tb,true)}${nc(s.tbn,0)}</tr>`).join("")}</tbody></table>`;
+  $("#tn-lead").textContent = `Spielerwerte ${TS.sf==="all" ? "auf allen Belägen" : "auf "+SFN[TS.sf]}, ${TS.period===365 ? "letzte 52 Wochen" : "letzte 2 Jahre"} bis zum Datenstand. „Beste zuerst“ berücksichtigt, dass bei Doppelfehlern weniger besser ist. Klick auf einen Namen übernimmt ihn in den Matchup-Rechner.`;
+  const col = PL_COLS.find(c => c[0]===TS.plKey) || PL_COLS[2], better = col[3] * (TS.plBest ? -1 : 1);
+  rows.sort((x,y) => { const a = x[col[0]], b = y[col[0]]; if(a==null) return 1; if(b==null) return -1; return (a-b)*better; });
+  const bar = `<div class="pad"><div class="topbar">
+    <label class="group"><span>Sortieren nach</span><select id="pl-key">${PL_COLS.map(c => `<option value="${c[0]}" ${c[0]===col[0]?"selected":""}>${c[1]}</option>`).join("")}</select></label>
+    <div class="group"><span>Reihenfolge</span><div class="seg"><label><input type="radio" name="plb" value="1" ${TS.plBest?"checked":""}>Beste zuerst</label><label><input type="radio" name="plb" value="0" ${!TS.plBest?"checked":""}>Schlechteste zuerst</label></div></div>
+  </div></div>`;
+  if(!rows.length) return bar + empty("Keine Spieler mit genug Matches.");
+  const th = c => `<th class="${c[0]===col[0]?"on":""}"><button type="button" data-plk="${c[0]}">${c[0]==="esf" && TS.sf!=="all" ? "Elo "+SFN[TS.sf] : c[1]}</button></th>`;
+  return bar + `<table><thead class="single"><tr class="c"><th class="l stick">#</th><th class="l">Spieler</th>${PL_COLS.map(th).join("")}</tr></thead>
+    <tbody>${rows.slice(0,400).map((s,i) => `<tr><td class="l stick n">${i+1}</td><td class="l"><button class="team" data-tpl="${esc(s.name)}">${esc(s.name)}</button> <span class="sub">${s.tour.toUpperCase()}</span></td>
+      ${PL_COLS.map(c => c[2]==="p" ? pc(s[c[0]]) : nc(s[c[0]], c[2])).join("")}</tr>`).join("")}</tbody></table>`;
 }
 function renderTnCheck(){
   const M = TN.model || {}, S = M.summary || {}, W = M.weights || [];
-  $("#tn-lead").textContent = "Wie gut ist das Tennis-Modell? Jede Prognose nur mit Daten vor dem Match, verglichen mit Elo allein, Aufschlagmodell allein und (wo vorhanden) dem Markt.";
-  const rows = (M.rows || []).filter(r => TS.tours.has(r[0]));
-  const b = Array.from({length:10}, () => ({n:0,p:0,y:0}));
-  for(const r of rows){ for(const [p,y] of [[r[5],1],[100-r[5],0]]){ const k = Math.min(9, Math.floor(p/10)); b[k].n++; b[k].p += p; b[k].y += y; } }
-  let bets=0, pl=0;
-  for(const r of rows){ if(!(r[6] && r[7])) continue; const cal = calibTn(r[5], r[6], r[7]);
-    for(const [p,o,y] of [[cal, r[8]||r[6], 1],[100-cal, r[9]||r[7], 0]]){ const ev = (p/100*o-1)*100; if(ev >= TS.thr && ev <= SUSPECT){ bets++; pl += y ? o-1 : -1; } } }
+  $("#tn-lead").textContent = "Wie verlässlich sind die Prozente? Jede Prognose nur mit Daten vor dem Match.";
+  const rows = (M.rows || []).filter(r => TS.tours.has(r[0]) && (TS.sf==="all" || r[2]===TS.sf));
+  const b = Array.from({length:5}, () => ({n:0,p:0,y:0}));
+  for(const r of rows){ const pf = Math.max(r[5], 100-r[5]), y = r[5] > 50 ? 1 : 0, k = Math.min(4, Math.floor((pf-50)/10)); b[k].n++; b[k].p += pf; b[k].y += y; }
   const llr = (lab, v, n) => `<tr><td class="l">${lab}</td>${nc(v,4)}${n!=null ? nc(n,0) : "<td></td>"}</tr>`;
   return `<div class="pad">
-    <h3>Log-Loss (kleiner ist besser), Matches der zwei Jahre vor dem 26.10.2026</h3>
+    <h3>Favoriten laut Modell: Wie oft gewinnen sie wirklich?</h3>
+    <table><thead class="single"><tr class="c"><th class="l">Siegchance Favorit</th><th>Matches</th><th>Ø erwartet</th><th>Favorit gewann</th><th>Diff.</th></tr></thead><tbody>
+      ${b.map((x,i) => x.n ? `<tr><td class="l">${50+i*10}–${60+i*10} %</td>${nc(x.n,0)}${pc(x.p/x.n)}${pc(x.y/x.n*100)}${dc(x.y/x.n*100 - x.p/x.n, null, false, 5)}</tr>` : "").join("")}
+    </tbody></table>
+    <p class="sub note">Liegen „erwartet“ und „gewann“ nahe beieinander, kannst du den Prozenten trauen. Filter Tour und Belag gelten auch hier.</p>
+    <h3>Genauigkeit im Vergleich (Log-Loss, kleiner ist besser)</h3>
     <table><thead class="single"><tr class="c"><th class="l">Prognose</th><th>Log-Loss</th><th>Matches</th></tr></thead><tbody>
-      ${llr("Kombiniertes Modell", S.model, S.n)}${llr("Nur Elo Belag", S.elo)}${llr("Nur Aufschlag / Return", S.serve)}
-      ${S.market!=null ? llr("Markt (Quote ohne Marge)", S.market, S.n_market) + llr("Modell auf denselben Matches", S.model_on_market) : ""}
+      ${llr("Kombiniertes Modell", S.model, S.n)}${llr("Nur Elo Belag", S.elo)}${llr("Nur Aufschlag / Return", S.serve)}${S.market!=null ? llr("Buchmacher (zum Vergleich)", S.market, S.n_market) : ""}
     </tbody></table>
-    <p class="sub note">Trefferquote des Modells: ${S.acc!=null ? Math.round(S.acc*100)+" %" : "–"} der Sieger richtig. Gewichte (gelernt): Elo gesamt ${fmt(W[0],2)}, Elo Belag ${fmt(W[1],2)}, Aufschlag/Return ${fmt(W[2],2)}.
-      ${S.market==null ? "Für den Marktvergleich fehlen historische Quoten (tennis-data.co.uk war beim Abruf nicht erreichbar)." : ""}</p>
-    <h3>Kalibrierung</h3>
-    <table><thead class="single"><tr class="c"><th class="l">Modell sagt</th><th>Fälle</th><th>Ø erwartet</th><th>Eingetreten</th><th>Diff.</th></tr></thead><tbody>
-      ${b.map((x,i) => x.n ? `<tr><td class="l">${i*10}–${i*10+10} %</td>${nc(x.n,0)}${pc(x.p/x.n)}${pc(x.y/x.n*100)}${dc(x.y/x.n*100 - x.p/x.n, null, false, 5)}</tr>` : "").join("")}
-    </tbody></table>
-    <h3>Value-Signale ab ${TS.thr} % (Modell ${TS.w} % + Markt)</h3>
-    <p>${bets ? `${int(bets)} Signale, Rendite <b class="${pl>0?"up":"down"}">${(pl>0?"+":"")+fmt(pl/bets*100,1)} %</b> zur besten Quote.` : "Keine Signale, weil historische Quoten fehlen."}</p>
+    <p class="sub note">Trefferquote insgesamt: ${S.acc!=null ? Math.round(S.acc*100)+" %" : "–"} der Sieger richtig. Gewichte (gelernt): Elo gesamt ${fmt(W[0],2)}, Elo Belag ${fmt(W[1],2)}, Aufschlag/Return ${fmt(W[2],2)}.</p>
   </div>`;
 }
-
 function renderTennis(){
   document.querySelectorAll("#tn-tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.ttab===TS.tab));
   if(!TN){ loadTennis(); return; }
@@ -1881,7 +1915,7 @@ function renderTennis(){
     + (old ? ` <b>Hinweis:</b> Die freie Quelle für Aufschlagstatistiken wird derzeit nicht weiter gepflegt. Elo-Werte laufen mit gesammelten Ergebnissen weiter, Aufschlagwerte beziehen sich auf die Zeit bis zum genannten Datum.` : "");
   $("#tn-status").classList.toggle("banner", !!old);
   const R = {fx:renderTnFx, top:renderTnTop, calc:renderTnCalc, pl:renderTnPlayers, chk:renderTnCheck};
-  $("#tn-out").classList.toggle("free", ["top","calc","chk"].includes(TS.tab) || (TS.tab==="fx" && !TN.fixtures.length));
+  $("#tn-out").classList.toggle("free", ["top","calc","chk","pl"].includes(TS.tab) || (TS.tab==="fx" && !TN.fixtures.length));
   $("#tn-out").innerHTML = R[TS.tab]();
   bindTennisOut();
 }
@@ -1893,7 +1927,9 @@ function bindTennisOut(){
   document.querySelectorAll("[data-tpl]").forEach(b => b.addEventListener("click", () => { if(!TS.ra || TS.rb) { TS.ra = b.dataset.tpl; TS.rb = ""; } else TS.rb = b.dataset.tpl; TS.tab = "calc"; renderTennis(); }));
   document.querySelectorAll('input[name="ttr"]').forEach(i => i.addEventListener("change", () => { TS.topRange = i.value; renderTennis(); }));
   document.querySelectorAll('input[name="ttk"]').forEach(i => i.addEventListener("change", () => { TS.topKind = i.value; renderTennis(); }));
-  const tm = $("#tt-min"); if(tm) tm.addEventListener("change", e => { TS.minOdds = +e.target.value; renderTennis(); });
+  const pk = $("#pl-key"); if(pk) pk.addEventListener("change", e => { TS.plKey = e.target.value; renderTennis(); });
+  document.querySelectorAll('input[name="plb"]').forEach(i => i.addEventListener("change", () => { TS.plBest = i.value==="1"; renderTennis(); }));
+  document.querySelectorAll("[data-plk]").forEach(b => b.addEventListener("click", () => { if(TS.plKey===b.dataset.plk) TS.plBest = !TS.plBest; else { TS.plKey = b.dataset.plk; TS.plBest = true; } renderTennis(); }));
   const go = $("#rc-go");
   if(go) go.addEventListener("click", () => {
     TS.ra = $("#rc-a").value.trim(); TS.rb = $("#rc-b").value.trim(); TS.rsf = $("#rc-sf").value; TS.rbo = +$("#rc-bo").value;
@@ -1911,9 +1947,14 @@ function bindTennis(){
   $("#tn-period").addEventListener("change", e => { TS.period = +e.target.value; renderTennis(); });
   $("#tn-min").addEventListener("input", e => { TS.minM = Math.max(1, +e.target.value || 1); renderTennis(); });
   $("#tn-sims").addEventListener("change", e => { TS.sims = +e.target.value; renderTennis(); });
-  $("#tn-w").value = String(TS.w);
-  $("#tn-w").addEventListener("change", e => { TS.w = +e.target.value; try{ localStorage.setItem("tb_tn_w", e.target.value); }catch(err){} renderTennis(); });
-  $("#tn-thr").addEventListener("input", e => { TS.thr = +e.target.value; $("#tn-thr-out").textContent = TS.thr; renderTennis(); });
+  const opts = (arr, sel, suf=" %") => arr.map(v => `<option value="${v}" ${v===sel?"selected":""}>${v}${suf}</option>`).join("");
+  $("#tn-fmin").innerHTML = opts([50,55,60,65,70,75,80,85,90], TS.favMin); $("#tn-fmax").innerHTML = opts([60,65,70,75,80,85,90,95,100], TS.favMax);
+  $("#tn-tbmin").innerHTML = opts([0,20,30,40,50,60,70], TS.tbMin);
+  $("#tn-sort").innerHTML = Object.entries(FX_SORT).map(([k,v]) => `<option value="${k}" ${k===TS.fxSort?"selected":""}>${v[0]}</option>`).join("");
+  $("#tn-fmin").addEventListener("change", e => { TS.favMin = +e.target.value; renderTennis(); });
+  $("#tn-fmax").addEventListener("change", e => { TS.favMax = +e.target.value; renderTennis(); });
+  $("#tn-tbmin").addEventListener("change", e => { TS.tbMin = +e.target.value; renderTennis(); });
+  $("#tn-sort").addEventListener("change", e => { TS.fxSort = e.target.value; renderTennis(); });
   $("#tn-search").addEventListener("input", e => { TS.search = e.target.value.trim().toLowerCase(); renderTennis(); });
   ["#ts-a","#ts-b","#ts-sims"].forEach(s => $(s).addEventListener("input", renderTSheet));
   $("#ts-re").addEventListener("click", () => { TSH.salt++; renderTSheet(); });
