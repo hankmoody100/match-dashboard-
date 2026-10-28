@@ -36,11 +36,12 @@ jobs:
           cache: pip
           cache-dependency-path: .github/workflows/update-data.yml
 
-      - run: pip install pandas requests
+      - run: pip install pandas requests openpyxl
 
       - name: Daten abrufen
         env:
           DATA_DIR: site/data
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}   # optional, für kommende Tennis-Matches
         run: python scripts/fetch_football.py
 
       - name: Seite veröffentlichen (Zweig gh-pages, ohne Verlauf)
