@@ -258,6 +258,14 @@ def fetch_results(old_rows):
 def fetch_fixtures():
     frames = []
     df = get_csv(f"{BASE}/fixtures.csv")
+    if df is None:
+        log("football-data Spielplan: Datei nicht abrufbar")
+    elif "Div" not in df.columns:
+        log(f"football-data Spielplan: unerwartetes Format, Spalten {list(df.columns)[:6]}")
+    else:
+        d_ = dates(df["Date"]) if "Date" in df.columns else pd.Series([], dtype=str)
+        log(f"football-data Spielplan: {len(df)} Zeilen, Ligen {sorted(df['Div'].dropna().unique().tolist())[:20]}, "
+            f"Daten {d_.min() if len(d_) else '-'} bis {d_.max() if len(d_) else '-'}")
     if df is not None and "Div" in df.columns:
         df = df[df["Div"].isin(LEAGUES.keys())].dropna(subset=["HomeTeam", "AwayTeam"])
         if not df.empty:
@@ -289,6 +297,102 @@ def fetch_fixtures():
     rows = [r for r in rows if r[1] >= iso]
     rows.sort(key=lambda r: (r[1], r[2]))
     return rows
+
+
+# ---------- Ersatzquellen für den Spielplan ----------
+ODDS_API = "https://api.the-odds-api.com/v4"
+SPORT_KEYS = {"D1": "soccer_germany_bundesliga", "D2": "soccer_germany_bundesliga2", "E0": "soccer_epl",
+              "SP1": "soccer_spain_la_liga", "I1": "soccer_italy_serie_a", "F1": "soccer_france_ligue_one",
+              "N1": "soccer_netherlands_eredivisie", "P1": "soccer_portugal_primeira_liga",
+              "B1": "soccer_belgium_first_div", "T1": "soccer_turkey_super_league", "SC0": "soccer_spl",
+              "AUT": "soccer_austria_bundesliga"}
+
+
+def to_fd_name(name, league, fd_teams):
+    """Ordnet einen fremden Teamnamen dem football-data-Namen zu (über Aliase und Ähnlichkeit)."""
+    nn = norm(name)
+    best, score = None, 0.0
+    for t in fd_teams:
+        for cand in [t] + [x for x in ((ALIASES.get(t) or {}).get(k) for k in ("search", "elo", "us")) if x]:
+            nc = norm(cand)
+            if not nc:
+                continue
+            s = difflib.SequenceMatcher(None, nn, nc).ratio()
+            if len(nc) >= 4 and (nc in nn or nn in nc):
+                s = max(s, 0.9)
+            if nn == nc:
+                s = 1.0
+            if s > score:
+                best, score = t, s
+    return best if score >= 0.72 else None
+
+
+def uk_time(iso):
+    """UTC-Zeit -> britische Ortszeit (so liefert auch football-data die Anstoßzeiten)."""
+    try:
+        from zoneinfo import ZoneInfo
+        t = dt.datetime.fromisoformat(iso.replace("Z", "+00:00")).astimezone(ZoneInfo("Europe/London"))
+        return t.date().isoformat(), t.strftime("%H:%M")
+    except Exception:
+        return iso[:10], ""
+
+
+def fixtures_fallback(fixtures, matches):
+    """Ergänzt fehlende Spiele aus The Odds API (Spielplan kostet keine Abrufe) und ClubElo."""
+    years = season_years()
+    cur = label(years[-1])
+    teams = {}
+    for m in matches:
+        if m[1] == cur:
+            teams.setdefault(m[0], set()).update([m[3], m[4]])
+    have = {(r[0], r[1], r[3], r[4]) for r in fixtures}
+    limit = (TODAY + dt.timedelta(days=10)).isoformat()
+    added = {"odds_api": 0, "clubelo": 0}
+    unmatched = set()
+
+    def add(l, d, t, h, a, src):
+        if d < TODAY.isoformat() or d > limit:
+            return
+        fh, fa = to_fd_name(h, l, teams.get(l, [])), to_fd_name(a, l, teams.get(l, []))
+        if not fh or not fa or fh == fa:
+            unmatched.update(x for x, y in ((h, fh), (a, fa)) if not y)
+            return
+        if any((l, dd, fh, fa) in have for dd in (d, (dt.date.fromisoformat(d) - dt.timedelta(days=1)).isoformat(),
+                                                   (dt.date.fromisoformat(d) + dt.timedelta(days=1)).isoformat())):
+            return
+        fixtures.append([l, d, t, fh, fa] + [None] * (len(FCOLS) - 5))
+        have.add((l, d, fh, fa))
+        added[src] += 1
+
+    key = os.environ.get("ODDS_API_KEY", "").strip()
+    if key:
+        for l, sk in SPORT_KEYS.items():
+            try:
+                r = requests.get(f"{ODDS_API}/sports/{sk}/events", params={"apiKey": key, "dateFormat": "iso"}, timeout=30)
+                if r.status_code != 200:
+                    log(f"  Odds API Spielplan {sk}: Status {r.status_code}")
+                    continue
+                for ev in r.json():
+                    d, t = uk_time(ev.get("commence_time", ""))
+                    add(l, d, t, ev.get("home_team", ""), ev.get("away_team", ""), "odds_api")
+            except Exception as e:
+                log(f"  Odds API Spielplan {sk}: {e}")
+    fx = get_csv("http://api.clubelo.com/Fixtures")
+    if fx is not None and {"Home", "Away", "Date", "Country"} <= set(fx.columns):
+        by_country = {}
+        for l, c in COUNTRY.items():
+            by_country.setdefault(c, []).append(l)
+        for e in fx.to_dict("records"):
+            d = str(e["Date"])[:10]
+            for l in by_country.get(e["Country"], []):
+                h_, a_ = to_fd_name(e["Home"], l, teams.get(l, [])), to_fd_name(e["Away"], l, teams.get(l, []))
+                if h_ and a_:
+                    add(l, d, "", e["Home"], e["Away"], "clubelo")
+                    break
+    fixtures.sort(key=lambda r: (r[1], r[2] or ""))
+    log(f"Spielplan ergänzt: {added['odds_api']} aus The Odds API, {added['clubelo']} aus ClubElo"
+        + (f", nicht zugeordnet: {sorted(unmatched)[:15]}" if unmatched else ""))
+    return fixtures
 
 
 def fkey(r):
@@ -540,6 +644,14 @@ def main():
         log("Spielplan nicht erreichbar, nutze letzten Stand.")
     else:
         meta["fixtures"] = NOW.isoformat(timespec="minutes")
+    # Fehlt der Spielplan bei football-data ganz oder für einzelne Ligen, aus Ersatzquellen ergänzen
+    try:
+        soon = (TODAY + dt.timedelta(days=10)).isoformat()
+        covered = {r[0] for r in fixtures if r[1] <= soon}
+        if len(covered) < len(LEAGUES) + len(EXTRA):
+            fixtures = fixtures_fallback(fixtures, matches)
+    except Exception as e:
+        log(f"Ersatz-Spielplan übersprungen: {e}")
 
     # xG: Understat für die großen fünf Ligen, Schuss-xG für den Rest
     cols_out, rows_out, xg_info = COLS, matches, {}
