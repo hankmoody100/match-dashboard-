@@ -297,6 +297,8 @@ body.best-open .best{transform:none}
 .bt3{font-size:.92rem;margin-top:.1rem}
 .bt4{display:flex;flex-wrap:wrap;gap:.2rem .8rem;font-size:.82rem;margin-top:.3rem}
 .bt5{font-size:.76rem;margin-top:.2rem}
+.bdiag{font-size:.74rem;color:var(--muted);padding:.4rem .2rem .2rem;line-height:1.45}
+.bday{font-size:.78rem;font-weight:700;color:var(--ink);margin:.7rem .1rem .1rem;text-transform:none}
 .bnote{padding:.5rem 1rem .9rem;margin:0;font-size:.74rem;border-top:1px solid var(--rule)}
 /* Plus-Knopf */
 .add{all:unset;cursor:pointer;display:inline-grid;place-items:center;width:1.35rem;height:1.35rem;border-radius:999px;background:var(--chip);color:var(--accent);
@@ -516,7 +518,8 @@ body.best-open .best{transform:none}
 <aside id="best" class="best" aria-label="Best of the Day">
   <div class="bh"><div><b>Best of the Day</b><span class="sub" id="best-sub"></span></div><button type="button" class="x" id="best-close" aria-label="Schließen">✕</button></div>
   <div class="bc">
-    <label class="group"><span>Tag</span><select id="bf-day"></select></label>
+    <label class="group"><span>Zeitraum</span><select id="bf-day"></select></label>
+    <label class="group"><span>Reihenfolge</span><select id="bf-ord"></select></label>
     <label class="group"><span>Anzahl</span><select id="bf-n"></select></label>
     <label class="group"><span>Quote mind.</span><select id="bf-min"></select></label>
     <label class="group"><span>Quote max.</span><select id="bf-max"></select></label>
@@ -524,7 +527,7 @@ body.best-open .best{transform:none}
     <div class="chips" id="bf-sp"></div>
   </div>
   <div class="bl" id="best-list"></div>
-  <p class="sub bnote">Sortiert nach erhöhter Wahrscheinlichkeit: mit Buchmacher-Quote, wie weit die Simulation über der Quote liegt, sonst wie weit sie über dem Üblichen für diesen Tipp liegt. Je Spiel ein Tipp.</p>
+  <p class="sub bnote">Ausgewählt nach erhöhter Wahrscheinlichkeit (mindestens 3 Prozentpunkte): mit Buchmacher-Quote, wie weit die Simulation über der Quote liegt, sonst wie weit sie über dem Üblichen für diesen Tipp liegt. Je Spiel ein Tipp.</p>
 </aside>
 <button type="button" id="slip-fab" class="fab" hidden aria-label="Wettschein öffnen">Schein <b id="slip-n">0</b></button>
 <aside id="slip" class="slip" aria-hidden="true" aria-label="Wettschein">
@@ -553,7 +556,7 @@ const SHORT = {AUT:"Österreich",D1:"Bundesliga",D2:"2. Bundesliga",E0:"England"
 let DB = null;
 const state = {
   tab:"fixtures", leagues:new Set(), seasons:new Set(), venue:"all", lastN:10, half:"ft",
-  role:"all", days:7, search:"", minGames:5, thr:5, only:false, sims:1500, decay:0.93, topRange:"today", topKind:"prob", minOdds:1.3, agKind:"all", agQ:0, agDays:3, agYouth:false, tipKind:"all", tipMin:50, tipMax:100, minFair:1.1, fxSort:"p_desc", topCat:"all", wModel:(() => { try{ const v = localStorage.getItem("tb_wmodel"); return v===null ? 50 : v==="auto" ? null : +v; }catch(e){ return 50; } })(),
+  role:"all", days:7, search:"", minGames:5, thr:5, only:false, sims:1500, decay:0.93, topRange:"today", topKind:"prob", minOdds:1.3, agKind:"all", agQ:0, agDays:3, agYouth:false, tipKind:"all", tipMin:50, tipMax:100, minFair:1.1, fxSort:"dt", topCat:"all", wModel:(() => { try{ const v = localStorage.getItem("tb_wmodel"); return v===null ? 50 : v==="auto" ? null : +v; }catch(e){ return 50; } })(),
   sort:{fixtures:["ev",-1], teams:["o25",-1], leagues:["tot",-1]}
 };
 
@@ -990,8 +993,8 @@ function openAll(i){
 
 /* ---------- Kommende Spiele ---------- */
 let FIX = [];
-const FB_SORT = {p_desc:["Sicherster Tipp zuerst", r => -(r.t ? r.t.p : -1)], p_asc:["Knappste Tipps zuerst", r => r.t ? r.t.p : 999],
-  g_desc:["Meiste Tore erwartet", r => -((r.S?r.S.xh+r.S.xa:0))], g_asc:["Wenigste Tore erwartet", r => (r.S?r.S.xh+r.S.xa:99)], dt:["Nach Termin", r => r.dt]};
+const FB_SORT = {dt:["Nach Anstoßzeit", r => r.dt], p_desc:["Sicherster Tipp zuerst", r => -(r.t ? r.t.p : -1)], p_asc:["Knappste Tipps zuerst", r => r.t ? r.t.p : 999],
+  g_desc:["Meiste Tore erwartet", r => -((r.S?r.S.xh+r.S.xa:0))], g_asc:["Wenigste Tore erwartet", r => (r.S?r.S.xh+r.S.xa:99)]};
 function renderFixtures(){
   const ctx = {map:perspectives(false), avgs:leagueAvgs()};
   const from = isoDay(0), to = state.days ? isoDay(state.days - 1) : "9999";
@@ -1952,7 +1955,7 @@ function makeDemo(){
 /* ===================== TENNIS ===================== */
 const TS = {tab:"fx", tours:new Set(["atp","wta"]), sf:"all", period:365, minM:8, sims:1500, thr:5, minOdds:1.3,
   w:(() => { try{ const v = localStorage.getItem("tb_tn_w"); return v===null ? 50 : +v; }catch(e){ return 50; } })(),
-  search:"", levels:new Set(["ATP/WTA","Challenger","ITF","Sonstige"]), qMin:0, topRange:"week", topKind:"fav", favMin:50, favMax:100, tbMin:0, fxSort:"p_desc", plKey:"spw", plBest:true, sort:{fx:["start",1], pl:["elo",-1]}, ra:"", rb:"", rsf:"H", rbo:3};
+  search:"", levels:new Set(["ATP/WTA","Challenger","ITF","Sonstige"]), qMin:0, topRange:"week", topKind:"fav", favMin:50, favMax:100, tbMin:0, fxSort:"start", plKey:"spw", plBest:true, sort:{fx:["start",1], pl:["elo",-1]}, ra:"", rb:"", rsf:"H", rbo:3};
 let TN = null, TN_LOADING = false;
 const SFN = {H:"Hart", C:"Sand", G:"Rasen"};
 const clampP = (p, lo=.3, hi=.95) => Math.min(Math.max(p, lo), hi);
@@ -2183,8 +2186,8 @@ function noKeyHelp(){
 const QTXT = ["kaum Daten, nur Buchmacher-Tendenz oder 50/50", "Schätzung über die Weltrangliste", "Elo aus eigenen Matches", "Elo + Aufschlagstatistik"];
 const qBadge = q => { q = q ?? 3; return `<span class="qd q${q}" title="Datenlage: ${QTXT[q]}">${"●".repeat(q)}${"○".repeat(3-q)}</span>`; };
 /* --- Ansichten --- */
-const FX_SORT = {p_desc:["Sicherster Favorit zuerst", r => -r.pf], p_asc:["Knappste Matches zuerst", r => r.pf], tb_desc:["Höchste Tiebreak-Chance", r => -r.tb], tb_asc:["Niedrigste Tiebreak-Chance", r => r.tb],
-  g_desc:["Meiste Spiele", r => -r.games], g_asc:["Wenigste Spiele", r => r.games], start:["Nach Termin", r => r.f.start]};
+const FX_SORT = {start:["Nach Anstoßzeit", r => r.f.start], p_desc:["Sicherster Favorit zuerst", r => -r.pf], p_asc:["Knappste Matches zuerst", r => r.pf], tb_desc:["Höchste Tiebreak-Chance", r => -r.tb], tb_asc:["Niedrigste Tiebreak-Chance", r => r.tb],
+  g_desc:["Meiste Spiele", r => -r.games], g_asc:["Wenigste Spiele", r => r.games]};
 function renderTnFx(){
   const fx = tnFixtures();
   $("#tn-lead").textContent = `Wer gewinnt wahrscheinlich, was wäre die faire Quote, wie wahrscheinlich ist ein Tiebreak. Jedes Match ${int(TS.sims)}-mal Spiel für Spiel simuliert. „Zahlen-Vorteil“: wer auf dem Belag des Matches in mehr Statistikwerten vorne liegt. Punkte vor dem Match = Datenlage: ●●● Aufschlag + Elo, ●●○ Elo, ●○○ Weltrangliste, ○○○ kaum Daten. Zahl in Klammern = Weltranglisten-Platz.`;
@@ -2358,7 +2361,7 @@ function bindTennis(){
 }
 
 /* ===================== BASKETBALL, EISHOCKEY, HANDBALL ===================== */
-const MS = {tkey:"win", tbest:true, sport:"basketball", tab:"fx", q:0, days:3, pmin:50, pmax:100, sort:"p_desc", search:"", top:false};
+const MS = {tkey:"win", tbest:true, sport:"basketball", tab:"fx", q:0, days:3, pmin:50, pmax:100, sort:"start", search:"", top:false};
 let MSD = null, MSDET = {}, MSROWS = [];
 const MS_ICON = {"basketball":"🏀", "ice-hockey":"🏒", "handball":"🤾"};
 function ncdf(x){ const t = 1/(1+0.2316419*Math.abs(x)), d = 0.3989423*Math.exp(-x*x/2), p = d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274)))); return x > 0 ? 1-p : p; }
@@ -2381,7 +2384,7 @@ function msGames(){
     .map(g => { const pf = Math.max(g.p, 100-g.p); return {...g, pf, fav:g.p >= 50 ? g.h : g.a, tot:g.eth + g.eta}; })
     .filter(g => g.pf >= MS.pmin && g.pf <= MS.pmax);
 }
-const MS_SORT = {p_desc:["Sicherster Favorit zuerst", g => -g.pf], p_asc:["Knappste Spiele zuerst", g => g.pf], t_desc:["Meiste Punkte/Tore erwartet", g => -g.tot], t_asc:["Wenigste Punkte/Tore erwartet", g => g.tot], start:["Nach Termin", g => g.start]};
+const MS_SORT = {start:["Nach Anstoßzeit", g => g.start], p_desc:["Sicherster Favorit zuerst", g => -g.pf], p_asc:["Knappste Spiele zuerst", g => g.pf], t_desc:["Meiste Punkte/Tore erwartet", g => -g.tot], t_asc:["Wenigste Punkte/Tore erwartet", g => g.tot]};
 const formI = s => `<span class="form">${String(s||"").split("").map(c => `<i class="${c}">${c}</i>`).join("")}</span>`;
 function renderMS(){
   document.querySelectorAll("#ms-tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.mtab===MS.tab));
@@ -2513,7 +2516,7 @@ function bindMS(){
   document.querySelectorAll("#ms-tabs button").forEach(b => b.addEventListener("click", () => { MS.tab = b.dataset.mtab; renderMS(); }));
   const opts = (arr, sel) => arr.map(v => `<option value="${v}" ${v===sel?"selected":""}>${v} %</option>`).join("");
   $("#ms-pmin").innerHTML = opts([50,55,60,65,70,75,80,85,90], MS.pmin); $("#ms-pmax").innerHTML = opts([60,65,70,75,80,85,90,95,100], MS.pmax);
-  $("#ms-sort").innerHTML = Object.entries(MS_SORT).map(([k,v]) => `<option value="${k}">${v[0]}</option>`).join("");
+  $("#ms-sort").innerHTML = Object.entries(MS_SORT).map(([k,v]) => `<option value="${k}" ${k===MS.sort?"selected":""}>${v[0]}</option>`).join("");
   $("#ms-pmin").addEventListener("change", e => { MS.pmin = +e.target.value; renderMS(); });
   $("#ms-pmax").addEventListener("change", e => { MS.pmax = +e.target.value; renderMS(); });
   $("#ms-sort").addEventListener("change", e => { MS.sort = e.target.value; renderMS(); });
@@ -2634,45 +2637,55 @@ function realOdds(k, h, a, f){
 const oddsCell = (v, p) => v ? `<td class="n ${p && v >= 100/p ? "up" : "sub"}" title="${p ? (v >= 100/p ? "über der fairen Quote" : "unter der fairen Quote") : ""}">${fmt(v)}</td>` : `<td class="n sub">–</td>`;
 
 /* ===================== BEST OF THE DAY ===================== */
-const BEST = (() => { const d = {day:0, n:20, qmin:1.3, qmax:3.0, qd:1, sports:["Fußball","Tennis","Basketball","Eishockey","Handball"]};
+const BEST = (() => { const d = {win:"24h", order:"time", n:20, qmin:1.3, qmax:3.0, qd:1, sports:["Fußball","Tennis","Basketball","Eishockey","Handball"]};
   try{ return {...d, ...JSON.parse(localStorage.getItem("tb_best") || "{}")}; }catch(e){ return d; } })();
 const saveBest = () => { try{ localStorage.setItem("tb_best", JSON.stringify(BEST)); }catch(e){} };
 const DEF_BASE = {"1":45,"X":26,"2":29,"1X":71,"X2":55,"12":74,"O15":75,"O25":52,"U25":48,"U35":70,"BY":52,"BN":48,"WH":58,"WA":42,"WB":45,"H60":45,"D60":22,"A60":33,"O55":50,"BT":70};
 const SPORT_ICON = {"Fußball":"⚽","Länderspiel":"⚽","Tennis":"🎾","Basketball":"🏀","Eishockey":"🏒","Handball":"🤾"};
-function dayRange(off){ const s = new Date(); s.setHours(0,0,0,0); s.setDate(s.getDate() + off); const e = new Date(s); e.setDate(e.getDate() + 1); return [s.toISOString(), e.toISOString()]; }
+function dayRange(win){
+  const now = new Date();
+  if(win === "24h"){ const e = new Date(now.getTime() + 24*36e5); return [now.toISOString(), e.toISOString()]; }
+  const s = new Date(); s.setHours(0,0,0,0); if(win === "tomorrow") s.setDate(s.getDate() + 1);
+  const e = new Date(s); e.setDate(e.getDate() + 1); return [s.toISOString(), e.toISOString()];
+}
+let BEST_DIAG = {};
 function bestCands(){
-  const [d0, d1] = dayRange(BEST.day), now = new Date().toISOString(), C = [], rho = rhoOf();
+  const [d0, d1] = dayRange(BEST.win || "24h"), now = new Date().toISOString(), C = [], rho = rhoOf();
+  BEST_DIAG = {games:{}, err:[], missing:[]};
   const inDay = iso => iso && iso >= d0 && iso < d1 && iso >= now;
-  const push = (sport, ev, evl, start, q, tips, oddsFn, m) => { for(const t of tips){ if(t.p==null || isNaN(t.p) || t.p <= 0 || t.p >= 99) continue;
+  const push = (sport, ev, evl, start, q, tips, oddsFn, m) => { BEST_DIAG.games[sport] = (BEST_DIAG.games[sport] || 0) + 1; for(const t of tips){ if(t.p==null || isNaN(t.p) || t.p <= 0 || t.p >= 99) continue;
     const o = oddsFn ? oddsFn(t.k) : {}; C.push({sport, ev, evl, start, q, k:t.k, lab:t.lab, p:t.p, o, m}); } };
   try{ // Fußball, tiefe Ligen
     if(DB && DB.fixtures){ const ctx = {map:perspectives(false), avgs:leagueAvgs()};
       for(const f of DB.fixtures){ const k = kickoff(f) || new Date(f.d+"T12:00:00"); const iso = k.toISOString(); if(!inDay(iso)) continue;
         const lam = lambdas(f, ctx, null); if(!lam) continue; const P = probsFromLam(lam.lh, lam.la, lam.rating ? rho : 0);
         push("Fußball", fkey(f), `${f.h} – ${f.a}`, iso, 3, tipsFrom(P, f), k_ => realOdds(k_, f.h, f.a, f), {lh:lam.lh, la:lam.la, rho:lam.rating ? rho : 0}); } }
-  }catch(e){}
+  }catch(e){ BEST_DIAG.err.push("Fußball: " + e.message); }
   try{ // Fußball weltweit
     const D = EX.all; if(D && D.games){ const c = D.cols;
       for(const r of D.games){ const g = {}; c.forEach((k,i) => g[k] = r[i]); if(g.q >= 3 || g.youth || !inDay(g.start)) continue;
         const H = g.nat ? deT(g.h) : g.h, A = g.nat ? deT(g.a) : g.a;
         push("Fußball", "ag|"+(g.id||g.start+g.h), `${H} – ${A}`, g.start, g.q, tipsFrom(probsFromLam(g.lh, g.la, rho), {h:H, a:A}), k_ => realOdds(k_, g.h, g.a), {lh:g.lh, la:g.la, rho}); } }
-  }catch(e){}
+    else BEST_DIAG.missing.push("Fußball weltweit");
+  }catch(e){ BEST_DIAG.err.push("Fußball weltweit: " + e.message); }
   try{ // Länderspiele
     for(const f of ((EX.intl||{}).fixtures || [])){ if(!inDay(f.start)) continue;
       push("Länderspiel", "in|"+f.start+"|"+f.h, `${deT(f.h)} – ${deT(f.a)}`, f.start, 2, tipsFrom(probsFromLam(f.lh, f.la, rho), {h:deT(f.h), a:deT(f.a)}), k_ => realOdds(k_, f.h, f.a), {lh:f.lh, la:f.la, rho}); }
-  }catch(e){}
+  }catch(e){ BEST_DIAG.err.push("Länderspiele: " + e.message); }
   try{ // Tennis
     if(TN && TN.fixtures) for(const f of TN.fixtures){ if(!inDay(f.start)) continue;
       push("Tennis", "tn|"+f.key, `${f.a} – ${f.b}`, f.start, f.q ?? 3, [{k:"WA", lab:`${f.a} gewinnt`, p:f.pm}, {k:"WB", lab:`${f.b} gewinnt`, p:100-f.pm}],
         k_ => { const r = realOdds(k_, f.a, f.b); if(!r.b365 && !r.iw){ const v = k_==="WA" ? (f.xa||f.oa) : (f.xb||f.ob); if(v) r.mk = v; } return r; }); }
-  }catch(e){}
+    if(!TN || !TN.fixtures) BEST_DIAG.missing.push("Tennis");
+  }catch(e){ BEST_DIAG.err.push("Tennis: " + e.message); }
   try{ // Basketball, Eishockey, Handball
     if(MSD && MSD.sports) for(const [sp, S] of Object.entries(MSD.sports)){ const hk = sp==="ice-hockey";
       for(const g of S.games){ if(!inDay(g.start)) continue;
         const tips = [{k:"WH", lab:`${g.h} gewinnt`, p:g.p}, {k:"WA", lab:`${g.a} gewinnt`, p:100-g.p}];
         if(hk){ const h3 = hockey3(g.eth, g.eta); tips.push({k:"H60", lab:"1 nach 60 Min.", p:h3.h}, {k:"A60", lab:"2 nach 60 Min.", p:h3.a}, {k:"O55", lab:"Über 5,5 Tore", p:h3.o55}, {k:"BT", lab:"Beide treffen", p:h3.bt}); }
         push(S.name, "ms|"+g.id, `${g.h} – ${g.a}`, g.start, g.q, tips, k_ => realOdds(k_, g.h, g.a), hk ? {lh:g.eth, la:g.eta, rho:0} : null); } }
-  }catch(e){}
+    if(!MSD || !MSD.sports || !Object.keys(MSD.sports).length) BEST_DIAG.missing.push("Basketball/Eishockey/Handball");
+  }catch(e){ BEST_DIAG.err.push("Weitere Sportarten: " + e.message); }
   return C;
 }
 function bestList(){
@@ -2692,33 +2705,43 @@ function bestList(){
   const top = new Map(); for(const c of C){ const k = mkey(c); top.set(k, Math.max(top.get(k) || 0, PRIO(c.ev))); }
   const best = new Map();
   for(const c of C){ if(PRIO(c.ev) < top.get(mkey(c))) continue;
-    if(c.quote < BEST.qmin || c.quote > BEST.qmax || c.score <= 0) continue;
+    if(c.quote < BEST.qmin || c.quote > BEST.qmax || c.score < 3) continue;      // mindestens 3 Prozentpunkte erhöht, sonst nur Rauschen
     const k = mkey(c), cur = best.get(k); if(!cur || c.score > cur.score) best.set(k, c); }
-  return [...best.values()].sort((a,b) => b.score - a.score).slice(0, BEST.n);
+  const sel = [...best.values()].sort((a,b) => b.score - a.score).slice(0, BEST.n);
+  BEST_DIAG.pool = C.length; BEST_DIAG.kept = best.size;
+  return BEST.order === "time" ? sel.sort((a,b) => a.start.localeCompare(b.start)) : sel;
 }
 function renderBest(){
   const el = $("#best-list"); if(!el) return;
   const L = bestList();
-  $("#best-sub").textContent = `${BEST.day===0 ? "Heute" : "Morgen"}, ${L.length} Tipps, Quote ${fmt(BEST.qmin)} bis ${fmt(BEST.qmax)}`;
-  el.innerHTML = L.length ? L.map((c,i) => `<div class="bt">
+  const WL = {"24h":"Nächste 24 Std.", today:"Heute", tomorrow:"Morgen"};
+  $("#best-sub").textContent = `${WL[BEST.win] || "Nächste 24 Std."}, ${L.length} Tipps, Quote ${fmt(BEST.qmin)} bis ${fmt(BEST.qmax)}`;
+  const D = BEST_DIAG, gm = Object.entries(D.games || {}).map(([k,v]) => `${SPORT_ICON[k] || ""} ${k} ${v}`).join(" · ");
+  const diag = `<div class="bdiag">Geprüft: ${gm || "keine Spiele im Zeitraum"}${D.missing && D.missing.length ? `<br>Noch nicht geladen: ${esc(D.missing.join(", "))}` : ""}${D.err && D.err.length ? `<br><span class="down">Fehler: ${esc(D.err.join(" | "))}</span>` : ""}</div>`;
+  let lastDay = "";
+  el.innerHTML = diag + (L.length ? L.map((c,i) => { const dd = new Date(c.start).toLocaleDateString("de-AT",{weekday:"long",day:"numeric",month:"long"}); const head = BEST.order==="time" && dd !== lastDay ? `<div class="bday">${esc(dd)}</div>` : ""; lastDay = dd; return head + `<div class="bt">
       <div class="bt1"><span class="bn">${i+1}</span><span class="sub">${SPORT_ICON[c.sport] || ""} ${esc(new Date(c.start).toLocaleTimeString("de-AT",{hour:"2-digit",minute:"2-digit"}))}</span>
         ${addBtn(c.ev, c.evl, c.start, c.sport, c.k, c.lab, c.p, {...(c.m || {}), bo:(c.src!=="fair" ? c.quote : null)})}</div>
       <div class="bt2">${esc(c.evl)}</div>
       <div class="bt3"><b>${esc(c.lab)}</b></div>
       <div class="bt4"><span><b>${fmt(c.p,0)} %</b> Chance</span><span>${c.src==="fair" ? "faire Quote" : esc(c.src)} <b>${fmt(c.quote)}</b></span><span class="up">+${fmt(c.score,1)}</span></div>
       <div class="bt5 sub">${c.edge != null ? `Simulation ${fmt(c.p,0)} %, die Quote preist nur ${fmt(100/c.quote,0)} % ein.` : `Simulation ${fmt(c.p,0)} %, üblich sind bei diesem Tipp ${fmt(c.base,0)} %.`}${c.q < 2 ? " Wenig Daten." : ""}</div>
-    </div>`).join("") : `<p class="sub" style="padding:.8rem">Keine Tipps mit erhöhter Wahrscheinlichkeit in dieser Quoten-Spanne. Spanne erweitern oder anderen Tag wählen.</p>`;
+    </div>`; }).join("") : `<p class="sub" style="padding:.8rem">Keine Tipps mit erhöhter Wahrscheinlichkeit in dieser Quoten-Spanne. Quote mind./max. erweitern, Datenlage senken oder anderen Zeitraum wählen.</p>`);
 }
 function bindBest(){
   const opt = (arr, sel, f) => arr.map(v => `<option value="${v}" ${v===sel?"selected":""}>${f ? f(v) : v}</option>`).join("");
-  $("#bf-day").innerHTML = opt([0,1], BEST.day, v => v===0 ? "Heute" : "Morgen");
+  if(!(BEST.qmin < BEST.qmax)){ BEST.qmin = 1.3; BEST.qmax = 3.0; }
+  if(!["24h","today","tomorrow"].includes(BEST.win)) BEST.win = "24h";
+  $("#bf-day").innerHTML = opt(["24h","today","tomorrow"], BEST.win, v => ({"24h":"Nächste 24 Std.", today:"Heute", tomorrow:"Morgen"})[v]);
+  $("#bf-ord").innerHTML = opt(["time","score"], BEST.order || "time", v => v==="time" ? "Nach Uhrzeit" : "Nach Stärke");
+  $("#bf-ord").addEventListener("change", e => { BEST.order = e.target.value; saveBest(); renderBest(); });
   $("#bf-n").innerHTML = opt([5,10,15,20,30,50], BEST.n);
   $("#bf-min").innerHTML = opt([1.1,1.2,1.3,1.4,1.5,1.6,1.8,2.0,2.5], BEST.qmin, v => fmt(v));
   $("#bf-max").innerHTML = opt([1.5,1.8,2.0,2.5,3.0,4.0,5.0,8.0,15.0], BEST.qmax, v => fmt(v));
   $("#bf-q").innerHTML = opt([0,1,2,3], BEST.qd, v => ["○○○ alle","●○○","●●○","●●●"][v]);
   $("#bf-sp").innerHTML = ["Fußball","Tennis","Basketball","Eishockey","Handball"].map(s => `<button type="button" class="chip" aria-pressed="${BEST.sports.includes(s)}" data-v="${s}">${SPORT_ICON[s]} ${s}</button>`).join("");
   const set = (k, v) => { BEST[k] = v; saveBest(); renderBest(); };
-  $("#bf-day").addEventListener("change", e => set("day", +e.target.value));
+  $("#bf-day").addEventListener("change", e => set("win", e.target.value));
   $("#bf-n").addEventListener("change", e => set("n", +e.target.value));
   $("#bf-min").addEventListener("change", e => set("qmin", +e.target.value));
   $("#bf-max").addEventListener("change", e => set("qmax", +e.target.value));
@@ -2770,6 +2793,7 @@ document.addEventListener("keydown", e => { if(e.key === "Escape" && $("#slip").
 refreshSlipUI();
 $("#srcbtn").addEventListener("click", openStatus);
 bindBest();
+try{ if(!localStorage.getItem("tb_best_seen") && window.innerWidth < 1500){ document.body.classList.add("best-open"); localStorage.setItem("tb_best_seen", "1"); } }catch(e){}
 load().then(() => { setSport(SPORT); renderBest(); loadTennis(); loadMS(); });
 </script>
 </body>

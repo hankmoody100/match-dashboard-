@@ -106,6 +106,31 @@ def nhl_week(day):
     return out
 
 
+ESPN_LG = {"basketball": ("basketball", "nba", "NBA"), "ice-hockey": ("hockey", "nhl", "NHL")}
+
+
+def espn_day(sport, d):
+    """ESPN-Spielplan eines Tages (NBA, NHL): zuverlässig von Servern aus, ohne Key."""
+    sp, lg, name = ESPN_LG[sport]
+    j = requests.get(f"https://site.api.espn.com/apis/site/v2/sports/{sp}/{lg}/scoreboard", params={"dates": d.replace("-", "")},
+                     headers={"User-Agent": "Mozilla/5.0"}, timeout=30).json()
+    out = []
+    for ev in j.get("events", []):
+        comp = (ev.get("competitions") or [{}])[0]
+        tm = {c.get("homeAway"): c for c in comp.get("competitors", [])}
+        if "home" not in tm or "away" not in tm:
+            continue
+        st = ((ev.get("status") or {}).get("type") or {})
+        fin = bool(st.get("completed"))
+        sc = lambda c: int(float(c.get("score"))) if fin and c.get("score") not in (None, "") else None
+        start = ev.get("date", "").replace("Z", "+00:00")
+        if len(start) == 22:          # 2026-11-10T00:30+00:00 -> Sekunden ergänzen
+            start = start[:16] + ":00" + start[16:]
+        out.append(_std(f"espn{ev.get('id')}", start, "USA", name, tm["home"]["team"].get("displayName", ""), tm["away"]["team"].get("displayName", ""),
+                        "finished" if fin else "notstarted" if st.get("state") == "pre" else "other", sc(tm["home"]), sc(tm["away"]), "espn"))
+    return out
+
+
 TSDB_SPORT = {"basketball": "Basketball", "ice-hockey": "Ice_Hockey", "handball": "Handball"}
 
 
@@ -173,6 +198,24 @@ def collect(data_dir, now, hours_since):
             time.sleep(0.3)
         any_ok |= sofa_ok
         # 2) Offizielle Quellen
+        if sport in ESPN_LG:
+            try:
+                eb = s.get("espn_back")
+                eb = dt.date.fromisoformat(eb) if eb else now.date() - dt.timedelta(days=1)
+                edays = list(days)
+                for _ in range(10):
+                    if eb <= limit:
+                        break
+                    eb -= dt.timedelta(days=1)
+                    edays.append(eb)
+                for d in edays:
+                    for x in espn_day(sport, d.isoformat()):
+                        take(x, "espn")
+                    time.sleep(0.2)
+                s["espn_back"] = eb.isoformat()
+                any_ok = True
+            except Exception as ex:
+                log(f"{sport} ESPN: {ex}")
         try:
             if sport == "basketball":
                 for x in nba_cdn():
@@ -193,7 +236,7 @@ def collect(data_dir, now, hours_since):
                 s["nhl_back"] = nb.isoformat()
                 any_ok = True
         except Exception as ex:
-            log(f"{sport} offizielle Quelle: {ex}")
+            log(f"{sport} offizielle Quelle (nba.com/nhl.com): {str(ex)[:120]}")
         # 3) TheSportsDB für alle Ligen
         tsdb_ok = False
         try:
