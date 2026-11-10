@@ -36,7 +36,7 @@ jobs:
           cache: pip
           cache-dependency-path: .github/workflows/update-data.yml
 
-      - run: pip install pandas requests openpyxl
+      - run: pip install pandas requests openpyxl beautifulsoup4
 
       - name: Daten abrufen
         env:
