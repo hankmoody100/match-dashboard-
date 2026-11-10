@@ -41,7 +41,8 @@ jobs:
       - name: Daten abrufen
         env:
           DATA_DIR: site/data
-          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}   # optional, für kommende Tennis-Matches
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}  
+          ODDS_API_IO_KEY: ${{ secrets.ODDS_API_IO_KEY }}# optional, für kommende Tennis-Matches
         run: python scripts/fetch_football.py
 
       - name: Seite veröffentlichen (Zweig gh-pages, ohne Verlauf)
