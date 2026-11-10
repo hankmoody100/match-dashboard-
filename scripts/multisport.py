@@ -62,6 +62,68 @@ def _row(ev):
             "hn": hs.get("normaltime"), "an": as_.get("normaltime"), "slug": ev.get("slug"), "cid": ev.get("customId")}
 
 
+import re, unicodedata
+
+
+def nkey(s):
+    s = unicodedata.normalize("NFKD", str(s)).encode("ascii", "ignore").decode().lower()
+    return re.sub(r"[^a-z0-9]+", " ", s).strip()
+
+
+def _std(id_, start, country, comp, h, a, status, hs=None, as_=None, src=""):
+    return {"id": id_, "start": start, "country": country, "comp": comp, "h": h, "a": a, "hid": None, "aid": None,
+            "status": status, "hs": hs, "as": as_, "hn": None, "an": None, "slug": None, "cid": None, "src": src}
+
+
+def nba_cdn():
+    """Offizielle NBA-Datendatei: ganze Saison mit Spielplan und Ergebnissen."""
+    j = requests.get("https://cdn.nba.com/static/json/staticData/scheduleLeagueV2.json", headers=BROWSER, timeout=40).json()
+    out = []
+    for d in (j.get("leagueSchedule") or {}).get("gameDates", []):
+        for g in d.get("games", []):
+            ht, at = g.get("homeTeam") or {}, g.get("awayTeam") or {}
+            if not ht.get("teamName") or not at.get("teamName"):
+                continue
+            st = g.get("gameStatus")
+            start = (g.get("gameDateTimeUTC") or "").replace("Z", "+00:00")
+            out.append(_std(f"nba{g.get('gameId')}", start, "USA", "NBA", f"{ht.get('teamCity')} {ht.get('teamName')}", f"{at.get('teamCity')} {at.get('teamName')}",
+                            "finished" if st == 3 else "notstarted" if st == 1 else "other", ht.get("score") if st == 3 else None, at.get("score") if st == 3 else None, "nba.com"))
+    return out
+
+
+def nhl_week(day):
+    """Offizielle NHL-Schnittstelle: eine Spielwoche ab Tag 'day'."""
+    j = requests.get(f"https://api-web.nhle.com/v1/schedule/{day}", headers=BROWSER, timeout=40).json()
+    out = []
+    for w in j.get("gameWeek", []):
+        for g in w.get("games", []):
+            ht, at = g.get("homeTeam") or {}, g.get("awayTeam") or {}
+            name = lambda t: f"{(t.get('placeName') or {}).get('default', '')} {(t.get('commonName') or {}).get('default', '')}".strip()
+            st = g.get("gameState")
+            fin = st in ("OFF", "FINAL")
+            out.append(_std(f"nhl{g.get('id')}", (g.get("startTimeUTC") or "").replace("Z", "+00:00"), "USA", "NHL", name(ht), name(at),
+                            "finished" if fin else "notstarted" if st in ("FUT", "PRE") else "other", ht.get("score") if fin else None, at.get("score") if fin else None, "nhl.com"))
+    return out
+
+
+TSDB_SPORT = {"basketball": "Basketball", "ice-hockey": "Ice_Hockey", "handball": "Handball"}
+
+
+def tsdb_day(sport, d):
+    """TheSportsDB (freier Schlüssel): alle Spiele eines Tages je Sportart."""
+    j = requests.get(f"https://www.thesportsdb.com/api/v1/json/123/eventsday.php", params={"d": d, "s": TSDB_SPORT[sport]}, headers=BROWSER, timeout=30).json()
+    out = []
+    for e in j.get("events") or []:
+        hs, as_ = e.get("intHomeScore"), e.get("intAwayScore")
+        fin = hs not in (None, "") and as_ not in (None, "") and (e.get("strStatus") or "").lower() in ("match finished", "ft", "aot", "aet", "finished", "")
+        ts = e.get("strTimestamp") or f"{e.get('dateEvent')}T{e.get('strTime') or '12:00:00'}"
+        start = ts if "+" in ts or ts.endswith("Z") else ts + "+00:00"
+        out.append(_std(f"tsdb{e.get('idEvent')}", start.replace("Z", "+00:00"), e.get("strCountry") or "", e.get("strLeague") or "",
+                        e.get("strHomeTeam") or "", e.get("strAwayTeam") or "", "finished" if fin else "notstarted",
+                        int(hs) if fin else None, int(as_) if fin else None, "thesportsdb"))
+    return out
+
+
 def collect(data_dir, now, hours_since):
     """Spielplan (−1 bis +3 Tage) alle 3 Stunden, Ergebnisse sammeln, 90 Tage rückwirkend nachladen."""
     data_dir = Path(data_dir)
@@ -71,8 +133,19 @@ def collect(data_dir, now, hours_since):
         if hours_since(s.get("t")) < 3:
             continue
         res = load(data_dir / f"ms_results_{sport}.json", {"rows": []})
-        seen = {r[0] for r in res["rows"]}
-        sched, ok = [], False
+        seen = {r[0] for r in res["rows"]} | {f"{r[1]}|{nkey(r[4])}|{nkey(r[5])}" for r in res["rows"]}
+        sched, sched_keys, src_count = [], set(), {}
+
+        def take(e, src):
+            nk = f"{e['start'][:10]}|{nkey(e['h'])}|{nkey(e['a'])}"
+            if e["status"] == "notstarted" and e["start"] >= now.isoformat():
+                if nk in sched_keys:
+                    return
+                sched_keys.add(nk); sched.append(e); src_count[src] = src_count.get(src, 0) + 1
+            elif e["status"] == "finished" and e["hs"] is not None and e["id"] not in seen and nk not in seen:
+                res["rows"].append([e["id"], e["start"][:10], None, None, e["h"], e["a"], e["hs"], e["as"], e.get("hn"), e.get("an"), e["country"], e["comp"]])
+                seen.add(e["id"]); seen.add(nk)
+
         days = [now.date() + dt.timedelta(days=i) for i in range(-1, 4)]
         back = s.get("back")
         back = dt.date.fromisoformat(back) if back else now.date() - dt.timedelta(days=1)
@@ -81,30 +154,73 @@ def collect(data_dir, now, hours_since):
         while back > limit and len(extra) < BACKFILL_STEP:
             back -= dt.timedelta(days=1)
             extra.append(back)
+        any_ok = False
+        # 1) Sofascore
+        sofa_ok = False
         for d in days + extra:
             try:
                 evs = _day(sport, d.isoformat())
-            except Exception as e:
-                log(f"{sport} {d}: {e}")
+            except Exception as ex:
+                log(f"{sport} Sofascore {d}: {ex}")
                 evs = None
             if evs is None:
+                if d == days[0]:
+                    break                           # gesperrt: keine weiteren Sofascore-Abrufe in diesem Lauf
                 continue
-            ok = True
+            sofa_ok = True
             for ev in evs:
-                e = _row(ev)
-                if e["status"] == "notstarted" and e["start"] >= now.isoformat() and d >= now.date() - dt.timedelta(days=1):
-                    sched.append(e)
-                elif e["status"] == "finished" and e["hs"] is not None and e["id"] not in seen:
-                    res["rows"].append([e["id"], e["start"][:10], e["hid"], e["aid"], e["h"], e["a"], e["hs"], e["as"],
-                                        e["hn"], e["an"], e["country"], e["comp"]])
-                    seen.add(e["id"])
+                x = _row(ev); x["src"] = "sofascore"; take(x, "sofascore")
             time.sleep(0.3)
-        if ok:
+        any_ok |= sofa_ok
+        # 2) Offizielle Quellen
+        try:
+            if sport == "basketball":
+                for x in nba_cdn():
+                    if x["start"][:10] >= (now.date() - dt.timedelta(days=BACKFILL_DAYS)).isoformat():
+                        take(x, "nba.com")
+                any_ok = True
+            if sport == "ice-hockey":
+                for x in nhl_week(now.date().isoformat()):
+                    take(x, "nhl.com")
+                nb = s.get("nhl_back")
+                nb = dt.date.fromisoformat(nb) if nb else now.date()
+                for _ in range(3):
+                    if nb <= limit:
+                        break
+                    nb -= dt.timedelta(days=7)
+                    for x in nhl_week(nb.isoformat()):
+                        take(x, "nhl.com")
+                s["nhl_back"] = nb.isoformat()
+                any_ok = True
+        except Exception as ex:
+            log(f"{sport} offizielle Quelle: {ex}")
+        # 3) TheSportsDB für alle Ligen
+        tsdb_ok = False
+        try:
+            tb = s.get("tsdb_back")
+            tb = dt.date.fromisoformat(tb) if tb else now.date() - dt.timedelta(days=1)
+            tdays = list(days)
+            for _ in range(5):
+                if tb <= limit:
+                    break
+                tb -= dt.timedelta(days=1)
+                tdays.append(tb)
+            for d in tdays:
+                for x in tsdb_day(sport, d.isoformat()):
+                    take(x, "thesportsdb")
+                tsdb_ok = True
+                time.sleep(0.6)
+            s["tsdb_back"] = tb.isoformat()
+        except Exception as ex:
+            log(f"{sport} TheSportsDB: {ex}")
+        any_ok |= tsdb_ok
+        if any_ok:
             res["rows"] = [r for r in res["rows"] if r[1] >= (now.date() - dt.timedelta(days=400)).isoformat()]
             save(data_dir / f"ms_results_{sport}.json", res)
             save(data_dir / f"ms_schedule_{sport}.json", {"t": now.isoformat(timespec="minutes"), "events": sched})
-            s.update({"t": now.isoformat(timespec="minutes"), "back": back.isoformat()})
-        log(f"{SPORTS[sport]['name']}: {len(sched)} kommende Spiele, {len(res['rows'])} gesammelte Ergebnisse, nachgeladen bis {back}, Sofascore {'ok' if ok else 'nicht erreichbar'}")
+            s.update({"t": now.isoformat(timespec="minutes"), "back": back.isoformat() if sofa_ok else s.get("back")})
+        log(f"{SPORTS[sport]['name']}: {len(sched)} kommende Spiele ({', '.join(f'{k} {v}' for k, v in src_count.items()) or 'keine'}), "
+            f"{len(res['rows'])} gesammelte Ergebnisse, Sofascore {'ok' if sofa_ok else 'nicht erreichbar'}, TheSportsDB {'ok' if tsdb_ok else 'nicht erreichbar'}")
     save(data_dir / "ms_state.json", st)
 
 
@@ -112,7 +228,8 @@ def _details(sport_events, data_dir, now):
     """Serien, Ausfälle und (ab 90 Minuten vorher) Aufstellung für Top-Ligen der nächsten 36 Stunden."""
     det = load(Path(data_dir) / "ms_details.json", {})
     soon = (now + dt.timedelta(hours=36)).isoformat()
-    todo = sorted([e for e in sport_events if now.isoformat() <= e["start"] <= soon and any(w in e["comp"].lower() for w in TOP)], key=lambda e: e["start"])
+    todo = sorted([e for e in sport_events if e.get("src", "sofascore") == "sofascore" and isinstance(e.get("id"), int)
+                   and now.isoformat() <= e["start"] <= soon and any(w in e["comp"].lower() for w in TOP)], key=lambda e: e["start"])
     used = 0
     for e in todo:
         if used >= DETAIL_BUDGET:
@@ -154,14 +271,20 @@ def build(data_dir, now):
         sched = load(data_dir / f"ms_schedule_{sport}.json", {"events": []})["events"]
         elo, n, hist = {}, {}, {}
         pairs = []                                    # (Elo-Differenz inkl. Heimvorteil, Punktdifferenz, Gesamt)
+        back = []                                     # Rückrechnung: Datum, Liga, Heim, Gast, Siegchance Heim vor dem Spiel, Ergebnis
+        last_name, last_comp = {}, {}
         for r in res:
-            h, a, hs, as_ = r[2] or r[4], r[3] or r[5], r[6], r[7]
+            h, a, hs, as_ = nkey(r[4]), nkey(r[5]), r[6], r[7]
             if hs is None or as_ is None:
                 continue
             eh, ea = elo.get(h, 1500.0), elo.get(a, 1500.0)
             dr = eh + cfg["hfa"] - ea
             pairs.append((dr, hs - as_, hs + as_, r[11]))
             we = 1 / (1 + 10 ** (-dr / 400))
+            if n.get(h, 0) >= 10 and n.get(a, 0) >= 10:
+                back.append([r[1], r[11], r[4], r[5], round(we * 100, 1), 1 if hs > as_ else 0 if hs < as_ else 0.5])
+            last_name[h], last_name[a] = r[4], r[5]
+            last_comp[h] = last_comp[a] = [r[10], r[11], r[1]]
             w = 1.0 if hs > as_ else 0.0 if hs < as_ else 0.5
             mov = abs(hs - as_) * (1 if sport != "basketball" else 0.25)
             k = cfg["k"] * math.log(mov + 1 + 1e-9 if mov > 0 else 1.5) * (2.2 / (abs(dr) * 0.001 + 2.2))
@@ -182,7 +305,7 @@ def build(data_dir, now):
         for e in sorted(sched, key=lambda x: x["start"]):
             if e["start"] < now.isoformat():
                 continue
-            h, a = e["hid"] or e["h"], e["aid"] or e["a"]
+            h, a = nkey(e["h"]), nkey(e["a"])
             nh, na = n.get(h, 0), n.get(a, 0)
             q = 2 if min(nh, na) >= 10 else 1 if min(nh, na) >= 4 else 0
             eh, ea = elo.get(h, 1500.0), elo.get(a, 1500.0)
@@ -202,7 +325,7 @@ def build(data_dir, now):
             margin = slope * dr
             form = lambda tid, k=5: "".join("S" if x[3] > x[4] else "N" if x[3] < x[4] else "U" for x in hist.get(tid, [])[-k:])
             last = lambda tid, k=6: hist.get(tid, [])[-k:][::-1]
-            h2h = [x for x in hist.get(h, []) if x[2] == e["a"]][-5:][::-1]
+            h2h = [x for x in hist.get(h, []) if nkey(x[2]) == a][-5:][::-1]
             games.append({"id": e["id"], "start": e["start"], "country": e["country"], "comp": e["comp"], "h": e["h"], "a": e["a"],
                           "q": q, "nh": nh, "na": na, "eh": round(eh), "ea": round(ea), "p": round(p_home * 100, 1),
                           "m": round(margin, 2), "sd": round(sd, 2), "eth": round(exp_h, 2), "eta": round(exp_a, 2),
@@ -212,7 +335,30 @@ def build(data_dir, now):
                           "top": any(w in e["comp"].lower() for w in TOP),
                           "url": f"https://www.sofascore.com/{e['slug']}/{e['cid']}" if e.get("slug") and e.get("cid") else None})
             all_events.append(e)
-        out[sport] = {"name": cfg["name"], "slope": slope, "sd": sd, "games": games}
+        # Teamübersicht: alle Teams mit Spielen in den letzten 120 Tagen
+        cutoff = (now.date() - dt.timedelta(days=120)).isoformat()
+        teams = []
+        for tid, hs_ in hist.items():
+            if not hs_ or hs_[-1][0] < cutoff or len(hs_) < 3:
+                continue
+            last20 = hs_[-20:]
+            H_, A_ = [x for x in last20 if x[1] == "H"], [x for x in last20 if x[1] == "A"]
+            av = lambda arr, i: round(sum(x[i] for x in arr) / len(arr), 1) if arr else None
+            wl = lambda arr: f"{sum(1 for x in arr if x[3] > x[4])}-{sum(1 for x in arr if x[3] < x[4])}"
+            res = ["S" if x[3] > x[4] else "N" if x[3] < x[4] else "U" for x in hs_]
+            streak = 0
+            for c in reversed(res):
+                if c == res[-1]:
+                    streak += 1
+                else:
+                    break
+            cc = last_comp.get(tid, ["", "", ""])
+            teams.append([last_name.get(tid, str(tid)), cc[0], cc[1], len(hs_), round(sum(1 for c in res if c == "S") / len(res) * 100, 1),
+                          wl([x for x in hs_ if x[1] == "H"]), wl([x for x in hs_ if x[1] == "A"]), "".join(res[-5:]), f"{res[-1]}{streak}",
+                          av(last20, 3), av(last20, 4), av(H_, 3), av(H_, 4), av(A_, 3), av(A_, 4), round(elo.get(tid, 1500))])
+        out[sport] = {"name": cfg["name"], "slope": slope, "sd": sd, "games": games, "back": back[-8000:],
+                      "tcols": ["team", "country", "comp", "n", "win", "home", "away", "form", "streak", "pf", "pa", "pfh", "pah", "pfa", "paa", "elo"],
+                      "teams": teams}
         qs = [g["q"] for g in games]
         log(f"{cfg['name']}: {len(games)} Spiele bewertet (●●○ {qs.count(2)}, ●○○ {qs.count(1)}, ○○○ {qs.count(0)}), Streuung {sd:.1f}")
     _details(all_events, data_dir, now)

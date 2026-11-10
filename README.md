@@ -73,3 +73,16 @@ Knopf „Quellen“ oben rechts: welche Quelle läuft, welche ruht (eigener Takt
 ## Externer Auslöser (alle 15 Minuten, für den Check vor Spielbeginn)
 cron-job.org ruft per POST https://api.github.com/repos/<user>/<repo>/actions/workflows/update-data.yml/dispatches
 mit Header "Authorization: Bearer <Token>" und Body {"ref":"main"} auf. Token: Fine-grained, nur dieses Repo, Actions: Read and write.
+
+## Ersatzquellen (falls Sofascore blockt)
+Basketball: nba.com (ganze Saison), Eishockey: nhl.com (wochenweise), alle drei Sportarten und Fußball weltweit: TheSportsDB (Tagesplan).
+Teams werden über den Namen zusammengeführt, damit sich die Quellen ergänzen.
+
+## Best of the Day
+Panel rechts (auf schmalen Bildschirmen über „★ Best of the Day“). Tipps des Tages aus allen Sportarten, sortiert nach erhöhter
+Wahrscheinlichkeit: mit Buchmacher-Quote Abstand der Simulation zur Quote, sonst Abstand zum Üblichen für diesen Tipp.
+Einstellbar: Tag, Anzahl, Mindest-/Höchstquote, Datenlage, Sportarten. Je Spiel ein Tipp, Plus-Knopf für den Schein.
+
+## Echte Quoten
+bet365 kostenlos für die Top-Ligen (football-data). bet365 und Interwetten für alle Sportarten über Odds-API.io,
+sobald das GitHub-Secret ODDS_API_IO_KEY hinterlegt ist (kostenpflichtig, Tarif Solo).

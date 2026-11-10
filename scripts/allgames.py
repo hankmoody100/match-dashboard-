@@ -106,6 +106,24 @@ def _espn(now):
     return out
 
 
+def _tsdb_soccer(d):
+    """Ersatz, falls Sofascore blockt: TheSportsDB-Tagesplan Fußball (freier Schlüssel)."""
+    j = requests.get("https://www.thesportsdb.com/api/v1/json/123/eventsday.php", params={"d": d, "s": "Soccer"}, headers=BROWSER, timeout=30).json()
+    out = []
+    for e in j.get("events") or []:
+        lg = e.get("strLeague") or ""
+        nat = bool(re.search(r"international|friendl|nations league|qualif|world cup|euro 20|africa cup|copa am|asian cup|gold cup", lg, re.I)) and "club" not in lg.lower()
+        hs, as_ = e.get("intHomeScore"), e.get("intAwayScore")
+        fin = hs not in (None, "") and as_ not in (None, "")
+        ts = e.get("strTimestamp") or f"{e.get('dateEvent')}T{e.get('strTime') or '12:00:00'}"
+        start = (ts if ("+" in ts or ts.endswith("Z")) else ts + "+00:00").replace("Z", "+00:00")
+        youth = bool(YOUTH_W.search((e.get("strHomeTeam") or "") + " " + (e.get("strAwayTeam") or "") + " " + lg))
+        out.append({"id": f"tsdb{e.get('idEvent')}", "slug": None, "cid": None, "start": start, "country": e.get("strCountry") or ("International" if nat else ""),
+                    "comp": lg, "h": e.get("strHomeTeam") or "", "a": e.get("strAwayTeam") or "", "hid": None, "aid": None, "nat": nat, "youth": youth,
+                    "status": "finished" if fin else "notstarted", "hs": int(hs) if fin else None, "as": int(as_) if fin else None, "src": "thesportsdb"})
+    return out
+
+
 def fetch_schedule(data_dir, now, hours_since):
     """Spielplan (heute + 3 Tage) alle 3 Stunden, gesammelte Endergebnisse (gestern + heute)."""
     data_dir = Path(data_dir)
@@ -133,6 +151,20 @@ def fetch_schedule(data_dir, now, hours_since):
                 results["rows"].append([e["id"], e["start"][:10], e["hid"], e["aid"], e["h"], e["a"], e["hs"], e["as"],
                                         e["country"], e["comp"], int(e["nat"]), int(e["youth"])])
                 seen_res.add(e["id"])
+    if not ok:
+        # Sofascore gesperrt: Ersatz über TheSportsDB (heute bis +3 Tage, Ergebnisse von gestern und heute)
+        for i in range(-1, 4):
+            d = (now.date() + dt.timedelta(days=i)).isoformat()
+            try:
+                for e in _tsdb_soccer(d):
+                    if e["status"] == "notstarted" and e["start"] >= now.isoformat():
+                        events.append(e)
+                    elif e["status"] == "finished" and e["id"] not in seen_res:
+                        results["rows"].append([e["id"], e["start"][:10], None, None, e["h"], e["a"], e["hs"], e["as"], e["country"], e["comp"], int(e["nat"]), int(e["youth"])])
+                        seen_res.add(e["id"])
+                ok_tsdb = True
+            except Exception as ex:
+                log(f"TheSportsDB {d}: {ex}")
     espn = _espn(now)
     events += [e for e in espn if e["status"] == "notstarted"]
     cutoff = (now.date() - dt.timedelta(days=730)).isoformat()
@@ -141,7 +173,7 @@ def fetch_schedule(data_dir, now, hours_since):
     sched = {"t": now.isoformat(timespec="minutes"), "sofascore_ok": ok, "events": events}
     save(data_dir / "sf_schedule.json", sched)
     log(f"Spielplan: {len(events)} kommende Spiele ({sum(1 for e in events if e['nat'])} Länderspiele), "
-        f"{len(results['rows'])} gesammelte Ergebnisse, Sofascore {'ok' if ok else 'nicht erreichbar'}, ESPN {len(espn)}")
+        f"{len(results['rows'])} gesammelte Ergebnisse, Sofascore {'ok' if ok else 'nicht erreichbar (Ersatz TheSportsDB)'}, ESPN {len(espn)}")
     return sched
 
 
@@ -214,7 +246,7 @@ def fetch_details(data_dir, now):
 def _own_elo(results):
     elo, n = {}, {}
     for r in sorted(results, key=lambda x: x[1]):
-        h, a, hs, as_ = r[2] or r[4], r[3] or r[5], r[6], r[7]
+        h, a, hs, as_ = " ".join(norm(r[4])), " ".join(norm(r[5])), r[6], r[7]
         eh, ea = elo.get(h, 1500.0), elo.get(a, 1500.0)
         we = 1 / (1 + 10 ** (-(eh + HFA_CLUB - ea) / 400))
         w = 1.0 if hs > as_ else 0.5 if hs == as_ else 0.0
@@ -273,7 +305,7 @@ def build(data_dir, now, deep_teams):
             if th and ta:
                 eh, ea, q, basis = club[th][0], club[ta][0], 2, "ClubElo"
         if q < 2:
-            kh, ka = e.get("hid") or e["h"], e.get("aid") or e["a"]
+            kh, ka = " ".join(norm(e["h"])), " ".join(norm(e["a"]))
             if own_n.get(kh, 0) >= 8 and own_n.get(ka, 0) >= 8:
                 eh, ea, q, basis = own[kh], own[ka], 1, f"eigene Elo ({min(own_n[kh], own_n[ka])}+ Spiele)"
             else:

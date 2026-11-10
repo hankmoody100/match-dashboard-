@@ -276,6 +276,28 @@ dialog::backdrop{background:rgba(17,24,39,.32);backdrop-filter:blur(3px);-webkit
 .srcbtn{font:inherit;font-size:.82rem;border:0;background:var(--chip);color:var(--ink);border-radius:999px;padding:.32rem .75rem;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem}
 .srcbtn i,.sdot{display:inline-block;width:.6rem;height:.6rem;border-radius:999px;background:#9AA1A8}
 .srcbtn i.g,.sdot.g{background:#16A34A}.srcbtn i.y,.sdot.y{background:#D97706}.srcbtn i.r,.sdot.r{background:#DC2626}.sdot.n{background:#9AA1A8}
+/* Best of the Day */
+.best{position:fixed;top:0;right:0;bottom:0;width:340px;z-index:30;background:var(--sheet);border-left:1px solid var(--rule);display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px);transform:translateX(105%);transition:transform .28s var(--ease);box-shadow:var(--sh-2)}
+body.best-open .best{transform:none}
+@media (min-width:1500px){ body:not(.best-closed) .best{transform:none;box-shadow:none} body .wrap{margin-right:340px;max-width:none} #best-close{display:none} #best-toggle{display:none} .fab{right:calc(340px + 1.2rem)} }
+.best .bh{display:flex;justify-content:space-between;align-items:flex-start;padding:1rem 1rem .6rem;border-bottom:1px solid var(--rule)}
+.best .bh b{font-size:1.05rem;display:block}
+.best .bc{display:grid;grid-template-columns:1fr 1fr;gap:.45rem .6rem;padding:.7rem 1rem;border-bottom:1px solid var(--rule)}
+.best .bc select{min-width:0;width:100%}
+.best .bc .chips{grid-column:1/-1}
+.best .bc .chip{font-size:.76rem;padding:.16rem .55rem}
+.best .bl{flex:1;overflow:auto;padding:.4rem .7rem}
+.bt{border:1px solid var(--rule);border-radius:12px;padding:.55rem .65rem;margin:.45rem 0;transition:box-shadow .15s var(--ease)}
+.bt:hover{box-shadow:var(--sh-1)}
+.bt1{display:flex;align-items:center;gap:.5rem}
+.bt1 .add{margin-left:auto}
+.bn{display:inline-grid;place-items:center;width:1.3rem;height:1.3rem;border-radius:999px;background:var(--ink);color:#fff;font:700 .72rem "Archivo",sans-serif}
+.bt2{font-size:.84rem;margin-top:.25rem;color:#374151}
+.bt3{font-size:.92rem;margin-top:.1rem}
+.bt4{display:flex;flex-wrap:wrap;gap:.2rem .8rem;font-size:.82rem;margin-top:.3rem}
+.bt5{font-size:.76rem;margin-top:.2rem}
+.bnote{padding:.5rem 1rem .9rem;margin:0;font-size:.74rem;border-top:1px solid var(--rule)}
 /* Plus-Knopf */
 .add{all:unset;cursor:pointer;display:inline-grid;place-items:center;width:1.35rem;height:1.35rem;border-radius:999px;background:var(--chip);color:var(--accent);
   font:700 .9rem/1 "Archivo",sans-serif;vertical-align:-3px;transition:background .15s var(--ease),color .15s var(--ease),transform .12s var(--ease)}
@@ -321,6 +343,7 @@ dialog::backdrop{background:rgba(17,24,39,.32);backdrop-filter:blur(3px);-webkit
     <button type="button" role="tab" data-sport="handball" aria-selected="false">🤾 Handball</button>
   </div>
   <div class="meta" id="meta">Daten werden geladen …</div>
+  <button type="button" class="srcbtn" id="best-toggle" title="Best of the Day">★ Best of the Day</button>
   <button type="button" class="srcbtn" id="srcbtn" title="Welche Quellen laufen?"><i id="srcdot"></i>Quellen</button>
 </header>
 <div id="fb">
@@ -414,10 +437,12 @@ dialog::backdrop{background:rgba(17,24,39,.32);backdrop-filter:blur(3px);-webkit
   <div class="tabs" role="tablist" id="ms-tabs">
     <button role="tab" aria-selected="true" data-mtab="fx">Kommende Spiele</button>
     <button role="tab" aria-selected="false" data-mtab="top">Top 10</button>
+    <button role="tab" aria-selected="false" data-mtab="teams">Teams</button>
+    <button role="tab" aria-selected="false" data-mtab="chk">Modell-Check</button>
   </div>
   <p class="lead"><span class="count" id="ms-count"></span><span id="ms-lead"></span></p>
   <div class="tablewrap free" id="ms-out"></div>
-  <footer>Daten: Sofascore (Spielplan, Ergebnisse, Serien, Ausfälle). Modell: Elo mit Punkt- bzw. Tordifferenz und Heimvorteil je Team, Heim-/Auswärtsschnitte der letzten 10 Spiele. Streuung aus eigenen Daten gelernt.</footer>
+  <footer>Daten: Sofascore, offizielle NBA- und NHL-Daten, TheSportsDB (Spielplan, Ergebnisse), ESPN (Verletzte, Tabellen). Serien und Ausfälle: Sofascore. Modell: Elo mit Punkt- bzw. Tordifferenz und Heimvorteil je Team, Heim-/Auswärtsschnitte der letzten 10 Spiele. Streuung aus eigenen Daten gelernt.</footer>
 </div>
 
 <div id="tn" hidden>
@@ -488,6 +513,19 @@ dialog::backdrop{background:rgba(17,24,39,.32);backdrop-filter:blur(3px);-webkit
   <div id="st-log" class="dbody" hidden></div>
 </dialog>
 
+<aside id="best" class="best" aria-label="Best of the Day">
+  <div class="bh"><div><b>Best of the Day</b><span class="sub" id="best-sub"></span></div><button type="button" class="x" id="best-close" aria-label="Schließen">✕</button></div>
+  <div class="bc">
+    <label class="group"><span>Tag</span><select id="bf-day"></select></label>
+    <label class="group"><span>Anzahl</span><select id="bf-n"></select></label>
+    <label class="group"><span>Quote mind.</span><select id="bf-min"></select></label>
+    <label class="group"><span>Quote max.</span><select id="bf-max"></select></label>
+    <label class="group"><span>Datenlage mind.</span><select id="bf-q"></select></label>
+    <div class="chips" id="bf-sp"></div>
+  </div>
+  <div class="bl" id="best-list"></div>
+  <p class="sub bnote">Sortiert nach erhöhter Wahrscheinlichkeit: mit Buchmacher-Quote, wie weit die Simulation über der Quote liegt, sonst wie weit sie über dem Üblichen für diesen Tipp liegt. Je Spiel ein Tipp.</p>
+</aside>
 <button type="button" id="slip-fab" class="fab" hidden aria-label="Wettschein öffnen">Schein <b id="slip-n">0</b></button>
 <aside id="slip" class="slip" aria-hidden="true" aria-label="Wettschein">
   <div class="sh"><b>Wettschein</b><button type="button" class="x" id="slip-close" aria-label="Schließen">✕</button></div>
@@ -528,19 +566,19 @@ const isoDay = off => { const d = new Date(); d.setDate(d.getDate()+off); return
 
 /* ---------- Laden ---------- */
 async function getJSON(u){ try{ const r = await fetch(u,{cache:"no-store"}); return r.ok ? await r.json() : null; }catch(e){ return null; } }
-const FILES = ["football","odds_history","elo","news","geo","model","international","allgames","sf_details","world","us_official","status"];
+const FILES = ["football","odds_history","elo","news","geo","model","international","allgames","sf_details","world","us_official","status","bookie_odds"];
 async function fetchAll(){ return Promise.all(FILES.map(n => getJSON(`data/${n}.json`))); }
-function setExtras(hist, elo, news, geo, model, intl, all, det, world, us, status){ EX.us = us || {}; EX.status = status || null; setTimeout(statusDot, 0); EX.det = det || {}; EX.world = world || null; EX.hist = hist || {}; EX.elo = elo; EX.news = news; EX.geo = geo || {}; EX.model = model || null; EX.intl = intl || null; EX.all = all || null; }
+function setExtras(hist, elo, news, geo, model, intl, all, det, world, us, status, bookies){ EX.bookies = bookies || null; EX.us = us || {}; EX.status = status || null; setTimeout(statusDot, 0); EX.det = det || {}; EX.world = world || null; EX.hist = hist || {}; EX.elo = elo; EX.news = news; EX.geo = geo || {}; EX.model = model || null; EX.intl = intl || null; EX.all = all || null; }
 async function load(){
-  const [main, hist, elo, news, geo, model, intl, all, det, world, us, status] = await fetchAll();
-  if(main){ setExtras(hist, elo, news, geo, model, intl, all, det, world, us, status); init(main, false); }
+  const [main, hist, elo, news, geo, model, intl, all, det, world, us, status, bookies] = await fetchAll();
+  if(main){ setExtras(hist, elo, news, geo, model, intl, all, det, world, us, status, bookies); init(main, false); }
   else { const d = makeDemo(); setExtras(d.extras.hist, d.extras.elo, null, {}); init(d, true); }
   setInterval(refresh, 10*60*1000);
 }
 async function refresh(){
-  const [main, hist, elo, news, geo, model, intl, all, det, world, us, status] = await fetchAll();
+  const [main, hist, elo, news, geo, model, intl, all, det, world, us, status, bookies] = await fetchAll();
   if(!main) return;
-  setExtras(hist, elo, news, geo, model, intl, all, det, world, us, status); setData(main); BT.key = null; PA.key = null; TR.key = null;
+  setExtras(hist, elo, news, geo, model, intl, all, det, world, us, status, bookies); setData(main); BT.key = null; PA.key = null; TR.key = null;
   if(!$("#sheet").open && !$("#dlg").open) render();
   if(SPORT==="tn" && !$("#tsheet").open){ TN = null; loadTennis(); }
   if(MS_ICON[SPORT] && !$("#dlg").open){ MSD = null; loadMS(); }
@@ -972,13 +1010,13 @@ function renderFixtures(){
   const key = FB_SORT[state.fxSort][1]; rows.sort((x,y) => { const a = key(x), b = key(y); return typeof a==="string" ? a.localeCompare(b) : a-b; });
   FIX = rows;
   const wd = d => new Date(d+"T12:00:00").toLocaleDateString("de-AT",{weekday:"short",day:"2-digit",month:"2-digit"});
-  return `<table><thead><tr class="g">${gh("",2,"stick gl")}${gh("Wahrscheinlichster Tipp",3,"gl sep")}${gh("Ausgang",3,"gl sep")}${gh("Tore",4,"gl sep")}${gh("Gegencheck",2,"gl sep")}</tr>
-  <tr class="c"><th class="l stick">Termin</th><th class="l">Spiel</th><th class="l sep">Tipp</th><th>Chance</th><th>Faire Quote</th>
+  return `<table><thead><tr class="g">${gh("",2,"stick gl")}${gh("Wahrscheinlichster Tipp",4,"gl sep")}${gh("Ausgang",3,"gl sep")}${gh("Tore",4,"gl sep")}${gh("Gegencheck",2,"gl sep")}</tr>
+  <tr class="c"><th class="l stick">Termin</th><th class="l">Spiel</th><th class="l sep">Tipp</th><th>Chance</th><th>Faire Quote</th><th>bet365</th>
     <th class="sep">1</th><th>X</th><th>2</th><th class="sep">Erwartet</th><th>Ü 2,5</th><th>Beide tr.</th><th>Ergebnis</th><th class="sep">Elo 1</th><th>xG-Bilanz</th>
   </tr></thead><tbody>${rows.map((r,i) => { const t0 = r.S.top[0]; return `<tr class="click" data-fix="${i}" tabindex="0">
     <td class="l stick">${esc(wd(r.f.d))} <span class="sub">${esc(koTime(r.f))}</span><br><span class="sub">${esc(sname(r.f.l))}</span></td>
     <td class="l"><button class="team" data-team="${esc(r.f.l+"|"+r.f.h)}" data-venue="home">${esc(r.f.h)}</button><span class="vs">–</span><button class="team" data-team="${esc(r.f.l+"|"+r.f.a)}" data-venue="away">${esc(r.f.a)}</button></td>
-    <td class="l sep">${addBtn(fkey(r.f), `${r.f.h} – ${r.f.a}`, (kickoff(r.f)||new Date(r.f.d+"T12:00:00")).toISOString(), "Fußball", r.t.k, r.t.lab, r.t.p, {lh:r.S.lh, la:r.S.la, rho:r.S.rating ? rhoOf() : 0})} <b>${esc(r.t.lab)}</b></td>${pc(r.t.p)}${nc(100/r.t.p)}
+    <td class="l sep">${addBtn(fkey(r.f), `${r.f.h} – ${r.f.a}`, (kickoff(r.f)||new Date(r.f.d+"T12:00:00")).toISOString(), "Fußball", r.t.k, r.t.lab, r.t.p, {lh:r.S.lh, la:r.S.la, rho:r.S.rating ? rhoOf() : 0, bo:realOdds(r.t.k, r.f.h, r.f.a, r.f).b365 || null})} <b>${esc(r.t.lab)}</b></td>${pc(r.t.p)}${nc(100/r.t.p)}${oddsCell(realOdds(r.t.k, r.f.h, r.f.a, r.f).b365, r.t.p)}
     ${pc(r.S.p1,true)}${pc(r.S.px)}${pc(r.S.p2)}${nc(r.S.xh+r.S.xa,1,true)}${pc(r.S.o25)}${pc(r.S.btts)}<td class="n"><b>${t0.h}:${t0.a}</b></td>
     ${pc((eloFx(r.f)||{}).p1 ?? null,true)}<td class="n ${r.xgb>0.4?"up":r.xgb<-0.4?"down":""}" title="xG-Differenz der letzten 10 Spiele: Heim minus Gast">${r.xgb==null ? "–" : (r.xgb>0?"+":"")+fmt(r.xgb,2)}</td>
   </tr>`; }).join("")}</tbody></table>`;
@@ -1035,8 +1073,8 @@ function renderSheet(){
     <div class="cols">
       <section>
         <h3>Alle Tipps, wahrscheinlichste zuerst</h3>
-        <table><thead class="single"><tr class="c"><th class="l">Tipp</th><th>Chance</th><th>Faire Quote</th></tr></thead><tbody>
-          ${tipsAll.map(t => `<tr><td class="l">${addBtn(fkey(f), `${f.h} – ${f.a}`, (kickoff(f)||new Date(f.d+"T12:00:00")).toISOString(), "Fußball", t.k, t.lab, t.p, {lh:S.lh, la:S.la, rho:S.rating ? rhoOf() : 0})} ${esc(t.lab)} ${tipTags(f, t)}</td>${pc(t.p)}${nc(100/t.p)}</tr>`).join("")}
+        <table><thead class="single"><tr class="c"><th class="l">Tipp</th><th>Chance</th><th>Faire Quote</th><th>bet365</th><th>Interwetten</th></tr></thead><tbody>
+          ${tipsAll.map(t => { const ro = realOdds(t.k, f.h, f.a, f); return `<tr><td class="l">${addBtn(fkey(f), `${f.h} – ${f.a}`, (kickoff(f)||new Date(f.d+"T12:00:00")).toISOString(), "Fußball", t.k, t.lab, t.p, {lh:S.lh, la:S.la, rho:S.rating ? rhoOf() : 0, bo:ro.b365 || ro.iw || null})} ${esc(t.lab)} ${tipTags(f, t)}</td>${pc(t.p)}${nc(100/t.p)}${oddsCell(ro.b365, t.p)}${oddsCell(ro.iw, t.p)}</tr>`; }).join("")}
         </tbody></table>
         <h3>Über / Unter</h3>
         <table><thead class="single"><tr class="c"><th class="l">Linie</th><th>Über</th><th>Fair</th><th>Unter</th><th>Fair</th></tr></thead><tbody>${ou}</tbody></table>
@@ -1148,6 +1186,7 @@ function renderLeagues(){
 
 const empty = msg => `<div class="empty">${esc(msg)}</div>`;
 function render(){
+  setTimeout(renderBest, 0);
   PERSP_ALL = null;
   try{ const o = document.querySelector('#f-w option[value="auto"]'); if(o && DB) o.textContent = `Automatisch (${Math.round(predictAll().w1*100)} %)`; }catch(e){}
   document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab===state.tab));
@@ -1923,7 +1962,7 @@ const shiftDate = (d, days) => { const x = new Date(d+"T12:00:00Z"); x.setUTCDat
 
 async function loadTennis(force){
   if((TN && !force) || TN_LOADING) return;
-  TN_LOADING = true; $("#tn-out").innerHTML = empty("Tennisdaten werden geladen …");
+  TN_LOADING = true; if(SPORT==="tn") $("#tn-out").innerHTML = empty("Tennisdaten werden geladen …");
   const raw = await getJSON("data/tennis.json"); TN_LOADING = false;
   if(!raw){ TN = {missing:true}; renderTennis(); return; }
   const P = raw.players, mc = raw.mcols, fc = raw.fcols;
@@ -1938,7 +1977,7 @@ async function loadTennis(force){
     meta:{updated:raw.updated, stats:raw.stats_until, results:raw.results_until, note:raw.fixtures_note, fx:raw.fixtures_updated, track:raw.track_start || TRACK_START}};
   const names = [...byP.keys()].filter(p => (TN.ratings[p] || [0,0,0,0,0])[4] >= 5).sort();
   $("#tn-players").innerHTML = names.map(n => `<option value="${esc(n)}">`).join("");
-  renderTennis();
+  renderTennis(); renderBest();
 }
 
 /* --- Kennzahlen eines Spielers (Belag, Zeitraum bis Datenstand) --- */
@@ -2319,7 +2358,7 @@ function bindTennis(){
 }
 
 /* ===================== BASKETBALL, EISHOCKEY, HANDBALL ===================== */
-const MS = {sport:"basketball", tab:"fx", q:0, days:3, pmin:50, pmax:100, sort:"p_desc", search:"", top:false};
+const MS = {tkey:"win", tbest:true, sport:"basketball", tab:"fx", q:0, days:3, pmin:50, pmax:100, sort:"p_desc", search:"", top:false};
 let MSD = null, MSDET = {}, MSROWS = [];
 const MS_ICON = {"basketball":"🏀", "ice-hockey":"🏒", "handball":"🤾"};
 function ncdf(x){ const t = 1/(1+0.2316419*Math.abs(x)), d = 0.3989423*Math.exp(-x*x/2), p = d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274)))); return x > 0 ? 1-p : p; }
@@ -2332,7 +2371,7 @@ async function loadMS(){
   if(MSD) return;
   $("#ms-out").innerHTML = empty("Daten werden geladen …");
   const [s, d] = await Promise.all([getJSON("data/sports.json"), getJSON("data/ms_details.json")]);
-  MSD = s || {sports:{}}; MSDET = d || {}; renderMS();
+  MSD = s || {sports:{}}; MSDET = d || {}; renderMS(); renderBest();
 }
 function msGames(){
   const S = (MSD.sports || {})[MS.sport]; if(!S) return [];
@@ -2349,12 +2388,14 @@ function renderMS(){
   if(!MSD){ loadMS(); return; }
   const S = (MSD.sports || {})[MS.sport], hk = MS.sport==="ice-hockey", unit = MS.sport==="basketball" ? "Punkte" : "Tore";
   if(!S){ $("#ms-lead").textContent = ""; $("#ms-out").innerHTML = empty("Noch keine Daten für diese Sportart. Sie entstehen beim nächsten Datenabruf auf GitHub."); return; }
+  if(MS.tab==="teams"){ $("#ms-out").innerHTML = msTeams(S); bindMSTeams(); return; }
+  if(MS.tab==="chk"){ $("#ms-out").innerHTML = msCheck(S); return; }
   const rows = msGames(), key = MS_SORT[MS.sort][1];
   rows.sort((x,y) => { const a = key(x), b = key(y); return typeof a==="string" ? a.localeCompare(b) : a-b; });
   MSROWS = MS.tab==="top" ? rows.filter(g => g.q >= 1).sort((a,b) => b.pf - a.pf).slice(0,10) : rows.slice(0, 500);
   $("#ms-lead").textContent = MS.tab==="top"
     ? `Die zehn sichersten Favoriten (${S.name}, mindestens ●○○), ${MS.days===1 ? "heute" : `nächste ${MS.days} Tage`}. Faire Quote = 100 geteilt durch die Siegchance.`
-    : `Alle ${S.name}-Spiele weltweit (Sofascore). Heim- und Auswärtsteam aus dem Spielplan, Form gesamt sowie Heimform des Heimteams und Auswärtsform des Gastteams. Datenlage: ●●○ ab 10 gesammelten Spielen je Team, ●○○ ab 4, ○○○ darunter.${hk ? " Siegchance inklusive Verlängerung, 1/X/2 nach 60 Minuten." : ""}`;
+    : `Alle ${S.name}-Spiele weltweit (Sofascore, nba.com, nhl.com, TheSportsDB). Heim- und Auswärtsteam aus dem Spielplan, Form gesamt sowie Heimform des Heimteams und Auswärtsform des Gastteams. Datenlage: ●●○ ab 10 gesammelten Spielen je Team, ●○○ ab 4, ○○○ darunter.${hk ? " Siegchance inklusive Verlängerung, 1/X/2 nach 60 Minuten." : ""}`;
   $("#ms-count").textContent = `${rows.length} Spiele`;
   if(!MSROWS.length){ $("#ms-out").innerHTML = empty("Keine Spiele für diese Auswahl."); return; }
   $("#ms-out").innerHTML = `<table><thead class="single"><tr class="c"><th class="l">Termin</th><th class="l">Land · Liga</th><th class="l">Spiel (Heim – Gast)</th><th class="l">Favorit</th><th>Siegchance</th><th>Faire Quote</th>
@@ -2392,6 +2433,8 @@ function openMS(i){
       ${hcLines.flatMap(L => [-L, L]).map(L => { const p = (1 - ncdf((-L - g.m)/sd))*100; return `<tr><td class="l">${MB("HC"+L, g.h+" "+(L>0?"+":"")+fmt(L,1), p)} ${L>0?"+":""}${fmt(L,1)}</td>${pc(p)}${nc(100/p)}</tr>`; }).join("")}</tbody></table>
       <h3>Gesamt-${unit} (erwartet ${fmt(tot,1)})</h3><table><thead class="single"><tr class="c"><th class="l">Linie</th><th>Über</th><th>Fair</th><th>Unter</th><th>Fair</th></tr></thead><tbody>
       ${tLines.map(L => { const o = pNormOver(tot, sdT, L); return `<tr><td class="l">${fmt(L,1)}</td><td class="n">${MB("TO"+L, "Über "+fmt(L,1), o)} ${Math.round(o)} %</td>${nc(100/o)}<td class="n">${MB("TU"+L, "Unter "+fmt(L,1), 100-o)} ${Math.round(100-o)} %</td>${nc(100/(100-o))}</tr>`; }).join("")}</tbody></table>`}
+    ${hk ? `<h3>Wahrscheinlichste Ergebnisse nach 60 Minuten</h3><div class="tops">${scoreTop(g.eth, g.eta, 0, 6).map(t => `<span><b>${t.h}:${t.a}</b> ${fmt(t.p,1)} %</span>`).join("")}</div>`
+      : `<h3>Erwartetes Ergebnis</h3><div class="tops"><span><b>${Math.round((tot + g.m)/2)} : ${Math.round((tot - g.m)/2)}</b> ${esc(g.h)} – ${esc(g.a)}</span><span>Vorsprung ${g.m>0?"+":""}${fmt(g.m,1)}</span><span>Gesamt ${fmt(tot,1)}</span></div>`}
     ${usBlock(g)}
     ${worldBlock(g.h, g.a, hk ? [h3.h, h3.d, h3.a] : [g.p, 100-g.p])}
     <h3>Heim / Auswärts</h3><table><thead class="single"><tr class="c"><th class="l"></th><th>Ø ${unit} für</th><th>Ø ${unit} gegen</th><th class="l">Form</th></tr></thead><tbody>
@@ -2406,6 +2449,46 @@ function openMS(i){
     <p class="links">${g.url ? `<a href="${esc(g.url)}" target="_blank" rel="noopener">Sofascore-Spielseite</a>` : ""}<a href="https://news.google.com/search?q=${encodeURIComponent(g.h+" "+g.a)}&hl=de" target="_blank" rel="noopener">Google News</a><a href="https://www.google.com/search?q=${encodeURIComponent(g.h+" "+g.a+" injury report lineup")}" target="_blank" rel="noopener">Verletzte & Aufstellung suchen</a></p>
     <p class="sub note">Ausfälle fließen nicht automatisch in die Prozente ein. Bei Ausfällen von Leistungsträgern die Tendenz entsprechend vorsichtiger lesen.</p></div>`;
   $("#dlg").showModal();
+}
+/* Teams: Bilanz, Heim/Auswärts, Form, Schnitte, Elo */
+const MS_TCOLS = [["n","Spiele",0,1],["win","Siege %","p",1],["home","Heim S-N","t",0],["away","Ausw. S-N","t",0],["form","Form","f",0],["streak","Serie","t",0],
+  ["pf","Ø für",1,1],["pa","Ø gegen",1,-1],["pfh","Ø für heim",1,1],["pah","Ø gegen heim",1,-1],["pfa","Ø für ausw.",1,1],["paa","Ø gegen ausw.",1,-1],["elo","Elo",0,1]];
+function msTeams(S){
+  const c = S.tcols || [], unit = MS.sport==="basketball" ? "Punkte" : "Tore";
+  let rows = (S.teams || []).map(r => { const o = {}; c.forEach((k,i) => o[k] = r[i]); return o; })
+    .filter(t => !MS.search || [t.team, t.comp, t.country].some(x => String(x).toLowerCase().includes(MS.search)));
+  const col = MS_TCOLS.find(x => x[0]===MS.tkey) || MS_TCOLS[1], dir = (col[3] || 1) * (MS.tbest ? -1 : 1);
+  rows.sort((a,b) => { const x = a[col[0]], y = b[col[0]]; if(x==null) return 1; if(y==null) return -1; return typeof x==="string" ? x.localeCompare(y)*dir : (x-y)*dir; });
+  $("#ms-lead").textContent = `Alle ${S.name}-Teams mit Spielen in den letzten 120 Tagen. Schnitte aus den letzten 20 Spielen (${unit}), getrennt nach Heim und Auswärts. „Beste zuerst“ berücksichtigt, dass bei Gegentoren weniger besser ist. Suche oben filtert nach Team, Liga oder Land.`;
+  $("#ms-count").textContent = `${rows.length} Teams`;
+  const bar = `<div class="pad"><div class="topbar"><label class="group"><span>Sortieren nach</span><select id="mt-key">${MS_TCOLS.filter(x => x[3]).map(x => `<option value="${x[0]}" ${x[0]===col[0]?"selected":""}>${x[1]}</option>`).join("")}</select></label>
+    <div class="group"><span>Reihenfolge</span><div class="seg"><label><input type="radio" name="mtb" value="1" ${MS.tbest?"checked":""}>Beste zuerst</label><label><input type="radio" name="mtb" value="0" ${!MS.tbest?"checked":""}>Schlechteste zuerst</label></div></div></div></div>`;
+  if(!rows.length) return bar + empty("Noch keine Teams. Sie entstehen mit den gesammelten Ergebnissen.");
+  return bar + `<table><thead class="single"><tr class="c"><th class="l">#</th><th class="l">Team</th><th class="l">Liga</th>${MS_TCOLS.map(x => `<th class="${x[0]===col[0]?"on":""}${x[2]==="f"?" l":""}"><button type="button" data-mtk="${x[0]}">${x[1]}</button></th>`).join("")}</tr></thead><tbody>
+    ${rows.slice(0, 500).map((t,i) => `<tr><td class="l n">${i+1}</td><td class="l"><b>${esc(t.team)}</b></td><td class="l"><span class="sub">${esc(t.country)}</span> ${esc(t.comp)}</td>
+      ${MS_TCOLS.map(x => x[2]==="p" ? pc(t[x[0]]) : x[2]==="f" ? `<td class="l">${formI(t[x[0]])}</td>` : x[2]==="t" ? `<td class="n">${esc(t[x[0]] ?? "–")}</td>` : nc(t[x[0]], x[2])).join("")}</tr>`).join("")}</tbody></table>`;
+}
+function bindMSTeams(){
+  const k = $("#mt-key"); if(k) k.addEventListener("change", e => { MS.tkey = e.target.value; renderMS(); });
+  document.querySelectorAll('input[name="mtb"]').forEach(i => i.addEventListener("change", () => { MS.tbest = i.value==="1"; renderMS(); }));
+  document.querySelectorAll("[data-mtk]").forEach(b => b.addEventListener("click", () => { if(MS.tkey===b.dataset.mtk) MS.tbest = !MS.tbest; else { MS.tkey = b.dataset.mtk; MS.tbest = true; } renderMS(); }));
+}
+/* Modell-Check: Wie oft gewinnen Favoriten wirklich? */
+function msCheck(S){
+  const B = (S.back || []).filter(r => !MS.search || [r[1], r[2], r[3]].some(x => String(x).toLowerCase().includes(MS.search)));
+  const stat = arr => { const b = Array.from({length:5}, () => ({n:0,p:0,y:0})); let n=0, hit=0, sp=0;
+    for(const r of arr){ const pf = Math.max(r[4], 100-r[4]), won = r[4] >= 50 ? r[5] : 1 - r[5]; if(r[5]===0.5) continue;
+      const k = Math.min(4, Math.floor((pf-50)/10)); b[k].n++; b[k].p += pf; b[k].y += won; n++; sp += pf; hit += won; }
+    return {b, n, rate:n ? hit/n*100 : null, exp:n ? sp/n : null}; };
+  const since = stat(B.filter(r => r[0] >= TRACK_START)), before = stat(B.filter(r => r[0] < TRACK_START));
+  const byDay = new Map(); for(const r of B.filter(r => r[0] >= TRACK_START)){ if(!byDay.has(r[0])) byDay.set(r[0], []); byDay.get(r[0]).push(r); }
+  const top = stat([...byDay.values()].flatMap(g => g.sort((a,b) => Math.max(b[4],100-b[4]) - Math.max(a[4],100-a[4])).slice(0,10)));
+  $("#ms-lead").textContent = `Jede Prognose nur mit Spielen davor berechnet (Teams mit mindestens 10 Spielen). Liegen „erwartet“ und „gewann“ nahe beieinander, kannst du den Prozenten trauen. Suche oben filtert nach Liga oder Team.`;
+  $("#ms-count").textContent = `${B.length} Spiele nachgerechnet`;
+  const tbl = (s, title) => `<h3>${title}</h3>${s.n ? `<table><thead class="single"><tr class="c"><th class="l">Siegchance Favorit</th><th>Spiele</th><th>Ø erwartet</th><th>Favorit gewann</th><th>Diff.</th></tr></thead><tbody>
+    ${s.b.map((x,i) => x.n ? `<tr><td class="l">${50+i*10}–${60+i*10} %</td>${nc(x.n,0)}${pc(x.p/x.n)}${pc(x.y/x.n*100)}${dc(x.y/x.n*100 - x.p/x.n, null, false, 5)}</tr>` : "").join("")}
+    <tr><td class="l"><b>Gesamt</b></td>${nc(s.n,0)}${pc(s.exp)}${pc(s.rate)}${dc(s.rate - s.exp, null, false, 5)}</tr></tbody></table>` : `<p class="sub">Noch keine Spiele in diesem Zeitraum.</p>`}`;
+  return `<div class="pad">${tbl(since, "Seit 26.10.2026")}${tbl(top, "Top 10 sicherste Favoriten je Tag, seit 26.10.2026")}${tbl(before, "Davor (zum Vergleich)")}</div>`;
 }
 function usFor(lg, name){
   const D = (EX.us || {})[lg]; if(!D) return {st:null, inj:null};
@@ -2470,7 +2553,6 @@ function toggleSel(sel){
   const i = SLIP.findIndex(x => x.ev===sel.ev && x.k===sel.k);
   if(i >= 0) SLIP.splice(i, 1); else SLIP.push({...sel, added:Date.now()});
   saveSlip(); refreshSlipUI();
-$("#srcbtn").addEventListener("click", openStatus);
 }
 function slipGroups(){
   const g = new Map();
@@ -2481,7 +2563,7 @@ function slipGroups(){
     x.exact = x.legs.length > 1 && m && keys.every(k => LEG[k]);
     x.p = x.legs.length === 1 ? x.legs[0].p : x.exact ? jointP(m.lh, m.la, m.rho || 0, keys) : prod;
     x.prod = prod;
-    x.odds = (SLIP.find(l => l.ev===x.ev && l.odds) || {}).odds || null;
+    x.odds = (SLIP.find(l => l.ev===x.ev && l.odds) || {}).odds || (x.legs.length === 1 && x.legs[0].bo ? x.legs[0].bo : null);
   }
   return [...g.values()];
 }
@@ -2527,6 +2609,126 @@ document.addEventListener("click", e => { const b = e.target.closest("[data-sel]
 // Alte Spiele (älter als 1 Tag) automatisch aus dem Schein nehmen
 SLIP = SLIP.filter(x => !x.start || new Date(x.start) > Date.now() - 864e5); saveSlip();
 
+/* ===================== ECHTE QUOTEN (bet365, Interwetten) ===================== */
+function bookieFor(h, a){
+  const B = EX.bookies; if(!B || !B.games) return null;
+  const th = lastTok(h), ta = lastTok(a); if(!th.length || !ta.length) return null;
+  for(const g of B.games){ const xa = lastTok(g.home), xb = lastTok(g.away);
+    if(th.some(t => xa.includes(t)) && ta.some(t => xb.includes(t))) return g; }
+  return null;
+}
+// Quote für einen Tipp-Schlüssel: bet365 vor Interwetten; Fußball zusätzlich kostenlose bet365-Spalten aus football-data
+function realOdds(k, h, a, f){
+  const out = {};
+  const g = bookieFor(h, a);
+  const pick = (book) => { const m = g && g.bm && g.bm[book]; if(!m) return null;
+    const ml = (m.ML || [])[0] || {}, tot = L => (m.Totals || []).find(x => +x.hdp === L) || {}, bt = (m["Both Teams To Score"] || [])[0] || {};
+    const v = {"1":ml.home, "X":ml.draw, "2":ml.away, "WH":ml.home, "WA":ml.away, "WB":ml.away, "O15":tot(1.5).over, "O25":tot(2.5).over, "U25":tot(2.5).under,
+      "U35":tot(3.5).under, "BY":bt.yes, "BN":bt.no, "O55":tot(5.5).over, "O45":tot(4.5).over, "O65":tot(6.5).over}[k];
+    return v ? +v : null; };
+  out.b365 = pick("Bet365"); out.iw = pick("Interwetten");
+  if(f){ const fb = {"1":f.bh, "X":f.bd, "2":f.ba, "O25":f.bo, "U25":f.bu}[k], fi = {"1":f.ih, "X":f.id, "2":f.ia}[k]; if(out.b365==null && fb) out.b365 = fb; if(out.iw==null && fi) out.iw = fi; }
+  out.url = g && g.urls ? g.urls.Bet365 : null;
+  return out;
+}
+const oddsCell = (v, p) => v ? `<td class="n ${p && v >= 100/p ? "up" : "sub"}" title="${p ? (v >= 100/p ? "über der fairen Quote" : "unter der fairen Quote") : ""}">${fmt(v)}</td>` : `<td class="n sub">–</td>`;
+
+/* ===================== BEST OF THE DAY ===================== */
+const BEST = (() => { const d = {day:0, n:20, qmin:1.3, qmax:3.0, qd:1, sports:["Fußball","Tennis","Basketball","Eishockey","Handball"]};
+  try{ return {...d, ...JSON.parse(localStorage.getItem("tb_best") || "{}")}; }catch(e){ return d; } })();
+const saveBest = () => { try{ localStorage.setItem("tb_best", JSON.stringify(BEST)); }catch(e){} };
+const DEF_BASE = {"1":45,"X":26,"2":29,"1X":71,"X2":55,"12":74,"O15":75,"O25":52,"U25":48,"U35":70,"BY":52,"BN":48,"WH":58,"WA":42,"WB":45,"H60":45,"D60":22,"A60":33,"O55":50,"BT":70};
+const SPORT_ICON = {"Fußball":"⚽","Länderspiel":"⚽","Tennis":"🎾","Basketball":"🏀","Eishockey":"🏒","Handball":"🤾"};
+function dayRange(off){ const s = new Date(); s.setHours(0,0,0,0); s.setDate(s.getDate() + off); const e = new Date(s); e.setDate(e.getDate() + 1); return [s.toISOString(), e.toISOString()]; }
+function bestCands(){
+  const [d0, d1] = dayRange(BEST.day), now = new Date().toISOString(), C = [], rho = rhoOf();
+  const inDay = iso => iso && iso >= d0 && iso < d1 && iso >= now;
+  const push = (sport, ev, evl, start, q, tips, oddsFn, m) => { for(const t of tips){ if(t.p==null || isNaN(t.p) || t.p <= 0 || t.p >= 99) continue;
+    const o = oddsFn ? oddsFn(t.k) : {}; C.push({sport, ev, evl, start, q, k:t.k, lab:t.lab, p:t.p, o, m}); } };
+  try{ // Fußball, tiefe Ligen
+    if(DB && DB.fixtures){ const ctx = {map:perspectives(false), avgs:leagueAvgs()};
+      for(const f of DB.fixtures){ const k = kickoff(f) || new Date(f.d+"T12:00:00"); const iso = k.toISOString(); if(!inDay(iso)) continue;
+        const lam = lambdas(f, ctx, null); if(!lam) continue; const P = probsFromLam(lam.lh, lam.la, lam.rating ? rho : 0);
+        push("Fußball", fkey(f), `${f.h} – ${f.a}`, iso, 3, tipsFrom(P, f), k_ => realOdds(k_, f.h, f.a, f), {lh:lam.lh, la:lam.la, rho:lam.rating ? rho : 0}); } }
+  }catch(e){}
+  try{ // Fußball weltweit
+    const D = EX.all; if(D && D.games){ const c = D.cols;
+      for(const r of D.games){ const g = {}; c.forEach((k,i) => g[k] = r[i]); if(g.q >= 3 || g.youth || !inDay(g.start)) continue;
+        const H = g.nat ? deT(g.h) : g.h, A = g.nat ? deT(g.a) : g.a;
+        push("Fußball", "ag|"+(g.id||g.start+g.h), `${H} – ${A}`, g.start, g.q, tipsFrom(probsFromLam(g.lh, g.la, rho), {h:H, a:A}), k_ => realOdds(k_, g.h, g.a), {lh:g.lh, la:g.la, rho}); } }
+  }catch(e){}
+  try{ // Länderspiele
+    for(const f of ((EX.intl||{}).fixtures || [])){ if(!inDay(f.start)) continue;
+      push("Länderspiel", "in|"+f.start+"|"+f.h, `${deT(f.h)} – ${deT(f.a)}`, f.start, 2, tipsFrom(probsFromLam(f.lh, f.la, rho), {h:deT(f.h), a:deT(f.a)}), k_ => realOdds(k_, f.h, f.a), {lh:f.lh, la:f.la, rho}); }
+  }catch(e){}
+  try{ // Tennis
+    if(TN && TN.fixtures) for(const f of TN.fixtures){ if(!inDay(f.start)) continue;
+      push("Tennis", "tn|"+f.key, `${f.a} – ${f.b}`, f.start, f.q ?? 3, [{k:"WA", lab:`${f.a} gewinnt`, p:f.pm}, {k:"WB", lab:`${f.b} gewinnt`, p:100-f.pm}],
+        k_ => { const r = realOdds(k_, f.a, f.b); if(!r.b365 && !r.iw){ const v = k_==="WA" ? (f.xa||f.oa) : (f.xb||f.ob); if(v) r.mk = v; } return r; }); }
+  }catch(e){}
+  try{ // Basketball, Eishockey, Handball
+    if(MSD && MSD.sports) for(const [sp, S] of Object.entries(MSD.sports)){ const hk = sp==="ice-hockey";
+      for(const g of S.games){ if(!inDay(g.start)) continue;
+        const tips = [{k:"WH", lab:`${g.h} gewinnt`, p:g.p}, {k:"WA", lab:`${g.a} gewinnt`, p:100-g.p}];
+        if(hk){ const h3 = hockey3(g.eth, g.eta); tips.push({k:"H60", lab:"1 nach 60 Min.", p:h3.h}, {k:"A60", lab:"2 nach 60 Min.", p:h3.a}, {k:"O55", lab:"Über 5,5 Tore", p:h3.o55}, {k:"BT", lab:"Beide treffen", p:h3.bt}); }
+        push(S.name, "ms|"+g.id, `${g.h} – ${g.a}`, g.start, g.q, tips, k_ => realOdds(k_, g.h, g.a), hk ? {lh:g.eth, la:g.eta, rho:0} : null); } }
+  }catch(e){}
+  return C;
+}
+function bestList(){
+  const C = bestCands().filter(c => BEST.sports.includes(c.sport==="Länderspiel" ? "Fußball" : c.sport) && c.q >= BEST.qd);
+  const base = {}; for(const c of C){ const k = c.sport+"|"+c.k; (base[k] = base[k] || []).push(c.p); }
+  for(const c of C){
+    const arr = base[c.sport+"|"+c.k], b = arr.length >= 6 ? arr.reduce((s,x) => s+x, 0)/arr.length : (DEF_BASE[c.k] ?? 50);
+    const bo = c.o.b365 || c.o.iw || c.o.mk || null;
+    c.src = c.o.b365 ? "bet365" : c.o.iw ? "Interwetten" : c.o.mk ? "Markt" : "fair";
+    c.quote = bo || 100/c.p; c.base = b;
+    c.edge = bo ? c.p - 100/bo : null; c.lift = c.p - b;
+    c.score = c.edge != null ? c.edge : c.lift * 0.8;
+  }
+  // dasselbe Spiel aus mehreren Quellen: nur die genaueste Quelle verwenden (tiefes Modell > Länderspiel-Modell > weltweite Wertung)
+  const PRIO = ev => ev.startsWith("in|") ? 2 : ev.startsWith("ag|") ? 1 : 3;
+  const mkey = c => c.start.slice(0,10) + "|" + c.evl.split(" – ").map(x => lastTok(x).sort().join(" ")).sort().join("|");
+  const top = new Map(); for(const c of C){ const k = mkey(c); top.set(k, Math.max(top.get(k) || 0, PRIO(c.ev))); }
+  const best = new Map();
+  for(const c of C){ if(PRIO(c.ev) < top.get(mkey(c))) continue;
+    if(c.quote < BEST.qmin || c.quote > BEST.qmax || c.score <= 0) continue;
+    const k = mkey(c), cur = best.get(k); if(!cur || c.score > cur.score) best.set(k, c); }
+  return [...best.values()].sort((a,b) => b.score - a.score).slice(0, BEST.n);
+}
+function renderBest(){
+  const el = $("#best-list"); if(!el) return;
+  const L = bestList();
+  $("#best-sub").textContent = `${BEST.day===0 ? "Heute" : "Morgen"}, ${L.length} Tipps, Quote ${fmt(BEST.qmin)} bis ${fmt(BEST.qmax)}`;
+  el.innerHTML = L.length ? L.map((c,i) => `<div class="bt">
+      <div class="bt1"><span class="bn">${i+1}</span><span class="sub">${SPORT_ICON[c.sport] || ""} ${esc(new Date(c.start).toLocaleTimeString("de-AT",{hour:"2-digit",minute:"2-digit"}))}</span>
+        ${addBtn(c.ev, c.evl, c.start, c.sport, c.k, c.lab, c.p, {...(c.m || {}), bo:(c.src!=="fair" ? c.quote : null)})}</div>
+      <div class="bt2">${esc(c.evl)}</div>
+      <div class="bt3"><b>${esc(c.lab)}</b></div>
+      <div class="bt4"><span><b>${fmt(c.p,0)} %</b> Chance</span><span>${c.src==="fair" ? "faire Quote" : esc(c.src)} <b>${fmt(c.quote)}</b></span><span class="up">+${fmt(c.score,1)}</span></div>
+      <div class="bt5 sub">${c.edge != null ? `Simulation ${fmt(c.p,0)} %, die Quote preist nur ${fmt(100/c.quote,0)} % ein.` : `Simulation ${fmt(c.p,0)} %, üblich sind bei diesem Tipp ${fmt(c.base,0)} %.`}${c.q < 2 ? " Wenig Daten." : ""}</div>
+    </div>`).join("") : `<p class="sub" style="padding:.8rem">Keine Tipps mit erhöhter Wahrscheinlichkeit in dieser Quoten-Spanne. Spanne erweitern oder anderen Tag wählen.</p>`;
+}
+function bindBest(){
+  const opt = (arr, sel, f) => arr.map(v => `<option value="${v}" ${v===sel?"selected":""}>${f ? f(v) : v}</option>`).join("");
+  $("#bf-day").innerHTML = opt([0,1], BEST.day, v => v===0 ? "Heute" : "Morgen");
+  $("#bf-n").innerHTML = opt([5,10,15,20,30,50], BEST.n);
+  $("#bf-min").innerHTML = opt([1.1,1.2,1.3,1.4,1.5,1.6,1.8,2.0,2.5], BEST.qmin, v => fmt(v));
+  $("#bf-max").innerHTML = opt([1.5,1.8,2.0,2.5,3.0,4.0,5.0,8.0,15.0], BEST.qmax, v => fmt(v));
+  $("#bf-q").innerHTML = opt([0,1,2,3], BEST.qd, v => ["○○○ alle","●○○","●●○","●●●"][v]);
+  $("#bf-sp").innerHTML = ["Fußball","Tennis","Basketball","Eishockey","Handball"].map(s => `<button type="button" class="chip" aria-pressed="${BEST.sports.includes(s)}" data-v="${s}">${SPORT_ICON[s]} ${s}</button>`).join("");
+  const set = (k, v) => { BEST[k] = v; saveBest(); renderBest(); };
+  $("#bf-day").addEventListener("change", e => set("day", +e.target.value));
+  $("#bf-n").addEventListener("change", e => set("n", +e.target.value));
+  $("#bf-min").addEventListener("change", e => set("qmin", +e.target.value));
+  $("#bf-max").addEventListener("change", e => set("qmax", +e.target.value));
+  $("#bf-q").addEventListener("change", e => set("qd", +e.target.value));
+  $("#bf-sp").addEventListener("click", e => { const c = e.target.closest(".chip"); if(!c) return; const on = c.getAttribute("aria-pressed")!=="true";
+    if(!on && BEST.sports.length===1) return; c.setAttribute("aria-pressed", on); BEST.sports = on ? [...BEST.sports, c.dataset.v] : BEST.sports.filter(x => x!==c.dataset.v); saveBest(); renderBest(); });
+  $("#best-toggle").addEventListener("click", () => document.body.classList.toggle("best-open"));
+  $("#best-close").addEventListener("click", () => document.body.classList.remove("best-open"));
+}
+
 /* --- Quellen-Übersicht --- */
 function statusDot(){
   const S = EX.status && EX.status.sources; const d = $("#srcdot"); if(!d) return;
@@ -2566,7 +2768,9 @@ $("#slip-fab").addEventListener("click", () => openSlip(!$("#slip").classList.co
 $("#slip-close").addEventListener("click", () => openSlip(false));
 document.addEventListener("keydown", e => { if(e.key === "Escape" && $("#slip").classList.contains("open") && !document.querySelector("dialog[open]")) openSlip(false); });
 refreshSlipUI();
-load().then(() => setSport(SPORT));
+$("#srcbtn").addEventListener("click", openStatus);
+bindBest();
+load().then(() => { setSport(SPORT); renderBest(); loadTennis(); loadMS(); });
 </script>
 </body>
 </html>

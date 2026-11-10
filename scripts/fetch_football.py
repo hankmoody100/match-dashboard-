@@ -52,10 +52,12 @@ COLS = ["l", "s", "d", "h", "a", "hg", "ag", "hhg", "hag", "hs", "as", "hst", "a
         "hc", "ac", "hy", "ay", "hr", "ar", "oh", "od", "oa", "oo", "ou",
         "ph", "pd", "pa", "po", "pu", "xh", "xd", "xa", "xo", "xu", "hf", "af"]
 # Spielplan: oh..ou = Pinnacle (sonst Schnitt) aktuell, xh..xu = beste aktuelle Quote
-FCOLS = ["l", "d", "t", "h", "a", "oh", "od", "oa", "oo", "ou", "xh", "xd", "xa", "xo", "xu"]
+FCOLS = ["l", "d", "t", "h", "a", "oh", "od", "oa", "oo", "ou", "xh", "xd", "xa", "xo", "xu",
+         "bh", "bd", "ba", "bo", "bu", "ih", "id", "ia"]          # bh..bu = bet365, ih..ia = Interwetten (wenn geliefert)
 TEXT = {"l", "s", "d", "h", "a", "t"}
 import understat
-ODDS = {"oh", "od", "oa", "oo", "ou", "ph", "pd", "pa", "po", "pu", "xh", "xd", "xa", "xo", "xu"}
+ODDS = {"oh", "od", "oa", "oo", "ou", "ph", "pd", "pa", "po", "pu", "xh", "xd", "xa", "xo", "xu",
+        "bh", "bd", "ba", "bo", "bu", "ih", "id", "ia"}
 ODDS_H = ["PSCH", "AvgCH", "PSH", "AvgH", "B365H"]
 ODDS_D = ["PSCD", "AvgCD", "PSD", "AvgD", "B365D"]
 ODDS_A = ["PSCA", "AvgCA", "PSA", "AvgA", "B365A"]
@@ -97,12 +99,13 @@ def write_status():
               ("xG (Understat, Schüsse)", "xG:", "xG übersprungen"),
               ("ClubElo", "ClubElo:", "ClubElo nicht erreichbar"),
               ("Schlagzeilen (Google News)", "News:", "News übersprungen"),
-              ("Weltweiter Spielplan (Sofascore, ESPN)", "Sofascore ok", "Sofascore nicht erreichbar"),
+              ("Weltweiter Spielplan (Sofascore, TheSportsDB, ESPN)", "[Alle Spiele] Spielplan:", "Weltweiter Spielplan übersprungen"),
               ("Spieldetails (Form, Serien, Ausfälle)", "Spieldetails:", "Sofascore blockt"),
               ("Länderspiele", "[Länderspiele]", "Länderspiele übersprungen"),
               ("Basketball, Eishockey, Handball", "Spiele bewertet", "Weitere Sportarten übersprungen"),
               ("Weltmarkt (Polymarket, Kalshi)", "[Welt-Tipp]", "Welt-Tipp übersprungen"),
-              ("Tennis", "[Tennis]", "Tennis übersprungen")]
+              ("Tennis", "[Tennis]", "Tennis übersprungen"),
+              ("bet365 / Interwetten (Odds-API.io)", "Spiele mit bet365", "Buchmacher-Quoten übersprungen")]
     out = {}
     for name, ok_word, bad_word in checks:
         bad = [l for l in lines if bad_word in l]
@@ -315,7 +318,9 @@ def fetch_fixtures():
                 "h": df["HomeTeam"].astype(str).str.strip(), "a": df["AwayTeam"].astype(str).str.strip(),
                 "oh": first(df, ODDS_H), "od": first(df, ODDS_D), "oa": first(df, ODDS_A),
                 "oo": first(df, ODDS_O), "ou": first(df, ODDS_U),
-                **{k: first(df, v) for k, v in MAX.items()}}))
+                **{k: first(df, v) for k, v in MAX.items()},
+                "bh": num(df, "B365H"), "bd": num(df, "B365D"), "ba": num(df, "B365A"), "bo": num(df, "B365>2.5"), "bu": num(df, "B365<2.5"),
+                "ih": num(df, "IWH"), "id": num(df, "IWD"), "ia": num(df, "IWA")}))
     df = get_csv(f"{BASE}/new_league_fixtures.csv")
     if df is not None and "Country" in df.columns:
         for code, (country, _) in EXTRA.items():
@@ -328,7 +333,8 @@ def fetch_fixtures():
                 "h": sub["Home"].astype(str).str.strip(), "a": sub["Away"].astype(str).str.strip(),
                 "oh": first(sub, ODDS_H), "od": first(sub, ODDS_D), "oa": first(sub, ODDS_A),
                 "oo": nan, "ou": nan, "xh": first(sub, ["MaxH", "MaxCH"]), "xd": first(sub, ["MaxD", "MaxCD"]),
-                "xa": first(sub, ["MaxA", "MaxCA"]), "xo": nan, "xu": nan}))
+                "xa": first(sub, ["MaxA", "MaxCA"]), "xo": nan, "xu": nan,
+                "bh": nan, "bd": nan, "ba": nan, "bo": nan, "bu": nan, "ih": nan, "id": nan, "ia": nan}))
     if not frames:
         return None
     rows = []
@@ -783,7 +789,14 @@ def main():
         STATUS["US-Daten (ESPN, NHL)"] = {"ok": False, "state": "fehler", "info": str(e)[:120]}
         log(f"US-Daten übersprungen: {e}")
 
-    # 9) Tennis (eigene Quellen und eigenes Modell, siehe tennis.py)
+    # 9) Echte Buchmacher-Quoten bet365/Interwetten, falls Key hinterlegt (siehe bookies.py)
+    try:
+        import bookies
+        bookies.run(DATA, NOW, hours_since)
+    except Exception as e:
+        log(f"Buchmacher-Quoten übersprungen: {e}")
+
+    # 10) Tennis (eigene Quellen und eigenes Modell, siehe tennis.py)
     try:
         import tennis
         tennis.run(DATA, NOW, meta, hours_since)
