@@ -326,6 +326,7 @@ def run(data_dir, now, meta, hours_since):
     tour_avg = {}        # (Tour, Belag) -> [Aufschlagpunkte, gewonnen]
     rows = []
     feat = []
+    rank_pairs = {}
     def k_factor(n, lv):
         return 250 / ((n + 5) ** 0.4) * (1.1 if lv == "G" else 1.0)
     def serve_rates(p, sf, day, tour):
@@ -355,6 +356,9 @@ def run(data_dir, now, meta, hours_since):
         p_e_all = 1 / (1 + 10 ** ((el - ew) / 400))
         p_e_srf = 1 / (1 + 10 ** ((sl_ - sw_) / 400))
         known = cnt.get(w, 0) >= 5 and cnt.get(l, 0) >= 5
+        for p_, e_, r_ in ((w, ew, m.get("wr")), (l, el, m.get("lr"))):
+            if r_ and cnt.get(p_, 0) >= 30 and m["date"] >= f"{now.year - 2}":
+                rank_pairs.setdefault(tour, []).append((e_, r_))
         feat.append((m["date"], logit(p_e_all), logit(p_e_srf), logit(p_serve), known, m))
         # Elo aktualisieren
         kw, kl = k_factor(cnt.get(w, 0), m["lv"]), k_factor(cnt.get(l, 0), m["lv"])
@@ -442,8 +446,52 @@ def run(data_dir, now, meta, hours_since):
     for m in matches:
         if m["date"] >= f"{now.year - 2}":
             tourneys[" ".join(norm(m["tn"]))] = m["sf"]
-    fixtures = []
+    # weitere Quellen alle 3 Stunden
+    ext_path = data_dir / "tennis_schedule.json"
+    try:
+        ext = json.loads(ext_path.read_text(encoding="utf-8"))
+    except Exception:
+        ext = {}
+    if hours_since(ext.get("t")) >= 3:
+        evs = fetch_sofascore(now) + fetch_tennisexplorer(now)
+        if evs:
+            ext = {"t": now.isoformat(timespec="minutes"), "events": evs}
+            ext_path.write_text(json.dumps(ext, separators=(",", ":")), encoding="utf-8")
+    # Weltrangliste -> Elo-Schätzung für Spieler ohne eigene Historie
+    prior = {}
+    for t_ in ("atp", "wta"):
+        pts = np.array(rank_pairs.get(t_, []), float)
+        if len(pts) > 200:
+            A = np.c_[np.ones(len(pts)), np.log(pts[:, 1])]
+            prior[t_] = np.linalg.lstsq(A, pts[:, 0], rcond=None)[0].tolist()
+    log(f"Elo aus Weltrangliste: {prior}")
+    def rank_elo(tour, rank):
+        if not rank or tour not in prior:
+            return None
+        c0, c1 = prior[tour]
+        return c0 + c1 * math.log(max(int(rank), 1))
+    all_events, seen = [], set()
+    def pkey(e, a, b):
+        return (e["start"][:10], frozenset((norm(a)[-1] if norm(a) else a, norm(b)[-1] if norm(b) else b)))
     for e in fx_cache.get("events", []):
+        e = {**e, "lv": "ATP/WTA", "src": "odds_api"}
+        all_events.append(e); seen.add(pkey(e, e["a"], e["b"]))
+    for e in ext.get("events", []):
+        if e["start"] < now.isoformat():
+            continue
+        if e.get("short"):
+            ra_, rb_ = names.resolve(e["a"], True), names.resolve(e["b"], True)
+            a_n = ra_ or " ".join(reversed(e["a"].split(" ", 1))) if not ra_ else ra_
+            b_n = rb_ or " ".join(reversed(e["b"].split(" ", 1))) if not rb_ else rb_
+            e = {**e, "a": a_n, "b": b_n}
+        k_ = pkey(e, e["a"], e["b"])
+        if k_ in seen:
+            continue
+        seen.add(k_); all_events.append(e)
+    fixtures = []
+    for e in all_events:
+        if e["start"] < now.isoformat():
+            continue
         if e["start"] < now.isoformat():
             continue
         a = names.resolve(e["a"]) or e["a"]
@@ -460,13 +508,26 @@ def run(data_dir, now, meta, hours_since):
         spw_b, rpw_b, _, n_b = serve_rates(b, sf, day, e["tour"])
         pa = min(max(avg_s + (spw_a - avg_s) - (rpw_b - (1 - avg_s)), 0.4), 0.9)
         pb = min(max(avg_s + (spw_b - avg_s) - (rpw_a - (1 - avg_s)), 0.4), 0.9)
-        le = logit(1 / (1 + 10 ** ((elo.get(b, 1500) - elo.get(a, 1500)) / 400)))
-        ls_ = logit(1 / (1 + 10 ** ((elo_s.get((b, sf), 1500) - elo_s.get((a, sf), 1500)) / 400)))
-        lsv = logit(p_match(pa, pb, bo))
-        pm = combine(le, ls_, lsv)
+        # Datenlage je Spieler: 3 = Aufschlag + Elo, 2 = Elo, 1 = Schätzung über Weltrangliste, 0 = kaum Daten
+        def info(p, rank, n_srv):
+            if cnt.get(p, 0) >= 5:
+                return elo[p], elo_s.get((p, sf), elo[p]), 3 if n_srv > 0 else 2
+            re_ = rank_elo(e["tour"], rank)
+            if re_ is not None:
+                return re_, re_, 1
+            return 1350.0, 1350.0, 0
+        ea, esa, qa = info(a, e.get("ra"), n_a)
+        eb, esb, qb = info(b, e.get("rb"), n_b)
+        q = min(qa, qb)
+        le = logit(1 / (1 + 10 ** ((eb - ea) / 400)))
+        ls_ = logit(1 / (1 + 10 ** ((esb - esa) / 400)))
+        lsv = logit(p_match(pa, pb, bo)) if q >= 3 else 0.0
+        pm = combine(le, ls_, lsv) if q >= 3 else 1 / (1 + math.exp(-(le * 0.6 + ls_ * 0.4)))
+        if q == 0 and e.get("oa") and e.get("ob"):
+            pm = (1 / e["oa"]) / (1 / e["oa"] + 1 / e["ob"])      # nur Buchmacher-Tendenz
         # Aufschlagwerte so verschieben, dass die Simulation die kombinierte Siegchance trifft
         lo, hi = -0.15, 0.15
-        for _ in range(30):
+        for _ in range(18):
             mid = (lo + hi) / 2
             if p_match(min(max(pa + mid, 0.3), 0.95), min(max(pb - mid, 0.3), 0.95), bo) < pm:
                 lo = mid
@@ -476,7 +537,7 @@ def run(data_dir, now, meta, hours_since):
         fixtures.append([e["tour"], e["start"], e["title"], sf, bo, a, b, e.get("oa"), e.get("ob"), e.get("xa"), e.get("xb"),
                          round(min(max(pa + sh, 0.3), 0.95), 4), round(min(max(pb - sh, 0.3), 0.95), 4),
                          round(1 / (1 + math.exp(-ls_)) * 100, 1), round(pm * 100, 1),
-                         int(n_a > 0), int(n_b > 0)])
+                         int(n_a > 0), int(n_b > 0), e.get("lv", "ATP/WTA"), q, e.get("ra"), e.get("rb")])
 
     # --- Ausgabe ---
     players = sorted({m["w"] for m in matches} | {m["l"] for m in matches})
@@ -498,7 +559,7 @@ def run(data_dir, now, meta, hours_since):
            "mcols": ["tour", "d", "tn", "sf", "lv", "rd", "bo", "w", "l", "wr", "lr", "score", "min",
                      *[f"w_{k}" for k in STATS], *[f"l_{k}" for k in STATS], "ow", "ol", "xw", "xl"],
            "matches": mrows,
-           "fcols": ["tour", "start", "title", "sf", "bo", "a", "b", "oa", "ob", "xa", "xb", "pa", "pb", "pe", "pm", "sa", "sb"],
+           "fcols": ["tour", "start", "title", "sf", "bo", "a", "b", "oa", "ob", "xa", "xb", "pa", "pb", "pe", "pm", "sa", "sb", "lv", "q", "ra", "rb"],
            "fixtures": fixtures, "ratings": ratings,
            "model": {"weights": [round(float(x), 4) for x in w_], "summary": summ,
                      "rcols": ["tour", "d", "sf", "w", "l", "p", "ow", "ol", "xw", "xl"], "rows": rows[-12000:]}}
@@ -532,6 +593,106 @@ def fetch_scores(key):
             log(f"Ergebnisse {s.get('key')}: {e}")
     log(f"Gesammelte Ergebnisse: {len(rows)}")
     return rows
+
+
+BROWSER = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+           "Accept": "application/json, text/html", "Accept-Language": "de-AT,de;q=0.9,en;q=0.8"}
+
+
+def level_of(text, gender=""):
+    t = (text or "").lower()
+    women = "women" in t or "wta" in t or "female" in t or gender == "F"
+    lv = "ATP/WTA" if ("atp" in t or "wta" in t) and "challenger" not in t and "125" not in t else \
+         "Challenger" if "challenger" in t or "125" in t else "ITF" if "itf" in t else "Sonstige"
+    return ("wta" if women else "atp"), lv
+
+
+def surf_of(text):
+    t = (text or "").lower()
+    return "C" if "clay" in t else "G" if "grass" in t else "H"
+
+
+def fetch_sofascore(now, days=2):
+    """Tagesplan aller Einzel-Matches (ATP, WTA, Challenger, ITF) inkl. Weltranglisten-Platz."""
+    out = []
+    for i in range(days):
+        d = (now.date() + dt.timedelta(days=i)).isoformat()
+        try:
+            r = requests.get(f"https://api.sofascore.com/api/v1/sport/tennis/scheduled-events/{d}", headers=BROWSER, timeout=30)
+            if r.status_code != 200:
+                log(f"Sofascore {d}: Status {r.status_code}")
+                continue
+            for ev in r.json().get("events", []):
+                if (ev.get("status") or {}).get("type") != "notstarted":
+                    continue
+                ht, at = ev.get("homeTeam") or {}, ev.get("awayTeam") or {}
+                a, b = ht.get("name", ""), at.get("name", "")
+                if not a or not b or "/" in a or "/" in b:
+                    continue            # Doppel weglassen
+                tour_ = ev.get("tournament") or {}
+                cat = (tour_.get("category") or {}).get("name", "")
+                ut = tour_.get("uniqueTournament") or {}
+                tr, lv = level_of(cat + " " + tour_.get("name", ""), ht.get("gender", ""))
+                start = dt.datetime.fromtimestamp(ev.get("startTimestamp", 0), dt.timezone.utc).isoformat()
+                out.append({"tour": tr, "lv": lv, "title": ut.get("name") or tour_.get("name", ""), "start": start,
+                            "sf": surf_of(ev.get("groundType") or ut.get("groundType") or tour_.get("groundType")),
+                            "a": a, "b": b, "ra": ht.get("ranking"), "rb": at.get("ranking"), "src": "sofascore"})
+        except Exception as e:
+            log(f"Sofascore {d}: {e}")
+    log(f"Sofascore: {len(out)} Einzel-Matches")
+    return out
+
+
+def fetch_tennisexplorer(now, days=2):
+    """Zweite Quelle: Tagesplan von tennisexplorer.com (Kurznamen, Durchschnittsquoten)."""
+    out = []
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:
+        log("Tennis Explorer: beautifulsoup4 fehlt")
+        return out
+    for i in range(days):
+        d = now.date() + dt.timedelta(days=i)
+        url = f"https://www.tennisexplorer.com/matches/?type=all&year={d.year}&month={d.month:02d}&day={d.day:02d}"
+        try:
+            r = requests.get(url, headers=BROWSER, timeout=30)
+            if r.status_code != 200:
+                log(f"Tennis Explorer {d}: Status {r.status_code}")
+                continue
+            soup = BeautifulSoup(r.text, "html.parser")
+            title, href, first = "", "", None
+            for tr in soup.select("table.result tr"):
+                cls = tr.get("class") or []
+                if "head" in cls:
+                    a_ = tr.select_one("td.t-name a") or tr.select_one("a")
+                    title, href = (a_.get_text(strip=True), a_.get("href", "")) if a_ else ("", "")
+                    continue
+                rid = tr.get("id") or ""
+                name = tr.select_one("td.t-name a")
+                if not name:
+                    continue
+                if not rid.endswith("b"):
+                    tm = tr.select_one("td.time")
+                    odds = [x.get_text(strip=True) for x in tr.select("td.coursew, td.course")]
+                    first = {"a": name.get_text(strip=True), "time": tm.get_text(strip=True) if tm else "", "odds": odds}
+                elif first:
+                    if "doubles" in href or "/" in first["a"]:
+                        first = None
+                        continue
+                    tr_, lv = level_of(href + " " + title)
+                    t = first["time"] if re.match(r"^\d{1,2}:\d{2}$", first["time"]) else "12:00"
+                    try:
+                        oa, ob = float(first["odds"][0]), float(first["odds"][1])
+                    except (IndexError, ValueError):
+                        oa = ob = None
+                    out.append({"tour": tr_, "lv": lv, "title": title, "start": f"{d.isoformat()}T{t}:00+01:00", "sf": None,
+                                "a": first["a"], "b": name.get_text(strip=True), "short": True, "oa": oa, "ob": ob,
+                                "src": "tennisexplorer"})
+                    first = None
+        except Exception as e:
+            log(f"Tennis Explorer {d}: {e}")
+    log(f"Tennis Explorer: {len(out)} Einzel-Matches")
+    return out
 
 
 def fetch_odds_api(key, now):

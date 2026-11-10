@@ -66,11 +66,52 @@ MAX = {"xh": ["MaxH", "BbMxH"], "xd": ["MaxD", "BbMxD"], "xa": ["MaxA", "BbMxA"]
 MAXC = {"xh": ["MaxCH"], "xd": ["MaxCD"], "xa": ["MaxCA"]}
 
 NOW = dt.datetime.now(dt.timezone.utc)
+STATUS = {}
+_LOGLINES = []
 TODAY = NOW.date()
 
 
 def log(*a):
     print(*a, flush=True)
+
+
+class _Tee:
+    """Leitet alle Ausgaben (auch die der Module) zusätzlich in _LOGLINES, für die Quellen-Übersicht."""
+    def __init__(self, orig):
+        self.o = orig
+
+    def write(self, x):
+        self.o.write(x)
+        _LOGLINES.extend(l for l in x.splitlines() if l.strip())
+
+    def flush(self):
+        self.o.flush()
+
+
+def write_status():
+    """Quellen-Übersicht für die Seite: was lief, was fiel aus (aus den Protokollzeilen dieses Laufs)."""
+    lines = _LOGLINES
+    checks = [("football-data (Ergebnisse, Spielplan)", "kommende Partien", "Keine Ergebnisse"),
+              ("Ersatz-Spielplan (Odds API, ClubElo)", "Spielplan ergänzt", "Ersatz-Spielplan übersprungen"),
+              ("Rating-Modell Fußball", "Modell:", "Modell übersprungen"),
+              ("xG (Understat, Schüsse)", "xG:", "xG übersprungen"),
+              ("ClubElo", "ClubElo:", "ClubElo nicht erreichbar"),
+              ("Schlagzeilen (Google News)", "News:", "News übersprungen"),
+              ("Weltweiter Spielplan (Sofascore, ESPN)", "Sofascore ok", "Sofascore nicht erreichbar"),
+              ("Spieldetails (Form, Serien, Ausfälle)", "Spieldetails:", "Sofascore blockt"),
+              ("Länderspiele", "[Länderspiele]", "Länderspiele übersprungen"),
+              ("Basketball, Eishockey, Handball", "Spiele bewertet", "Weitere Sportarten übersprungen"),
+              ("Weltmarkt (Polymarket, Kalshi)", "[Welt-Tipp]", "Welt-Tipp übersprungen"),
+              ("Tennis", "[Tennis]", "Tennis übersprungen")]
+    out = {}
+    for name, ok_word, bad_word in checks:
+        bad = [l for l in lines if bad_word in l]
+        hit = [l for l in lines if ok_word in l and bad_word not in l]
+        state = "ok" if hit else "fehler" if bad else "ruht"      # ruht = in diesem Lauf nicht fällig (eigener Takt)
+        out[name] = {"ok": state == "ok", "state": state,
+                     "info": (hit[-1] if hit else bad[-1] if bad else "in diesem Lauf nicht fällig, letzter Stand bleibt erhalten")[:160]}
+    out.update(STATUS)
+    save_json(DATA / "status.json", {"t": NOW.isoformat(timespec="minutes"), "sources": out})
 
 
 # ---------- Hilfen ----------
@@ -450,11 +491,12 @@ def update_elo(fixtures, team_keys):
         log("ClubElo nicht erreichbar, behalte alten Stand.")
         return
     by_country = {}
-    elo_of = {}
+    elo_of, all_clubs = {}, {}
     for r in ratings.itertuples(index=False):
         rec = r._asdict()
         by_country.setdefault(rec.get("Country"), []).append(rec["Club"])
         elo_of[rec["Club"]] = round(float(rec["Elo"]))
+        all_clubs[rec["Club"]] = [round(float(rec["Elo"])), rec.get("Country")]
     mapping, unmatched = {}, []
     for l, team in sorted(team_keys):
         m = match_name(team, l, by_country.get(COUNTRY.get(l), []))
@@ -462,7 +504,7 @@ def update_elo(fixtures, team_keys):
             mapping[f"{l}|{team}"] = m
         else:
             unmatched.append(f"{l}|{team}")
-    out = {"updated": NOW.isoformat(timespec="minutes"), "ratings": {}, "fixtures": {}, "unmatched": unmatched}
+    out = {"updated": NOW.isoformat(timespec="minutes"), "ratings": {}, "fixtures": {}, "unmatched": unmatched, "all": all_clubs}
     for k, club in mapping.items():
         out["ratings"][k] = elo_of.get(club)
     if fx is not None and {"Home", "Away", "Date"} <= set(fx.columns):
@@ -618,6 +660,7 @@ def update_geo(fixtures):
 
 # ---------- Ablauf ----------
 def main():
+    sys.stdout = _Tee(sys.stdout)
     DATA.mkdir(parents=True, exist_ok=True)
     meta = load_json(DATA / "meta.json", {})
     football = load_json(DATA / "football.json", None)
@@ -691,7 +734,56 @@ def main():
         except Exception as e:
             log(f"{name} übersprungen: {e}")
 
-    # 5) Tennis (eigene Quellen und eigenes Modell, siehe tennis.py)
+    # 5) Weltweiter Spielplan (siehe allgames.py), dann Länderspiele, dann Bewertung aller Spiele
+    try:
+        import allgames
+        allgames.fetch_schedule(DATA, NOW, hours_since)
+    except Exception as e:
+        log(f"Weltweiter Spielplan übersprungen: {e}")
+    try:
+        import international
+        international.run(DATA, NOW, hours_since)
+    except Exception as e:
+        log(f"Länderspiele übersprungen: {e}")
+    try:
+        import allgames
+        deep = set()
+        for m in matches:
+            for t in (m[3], m[4]):
+                for n in [t] + [x for x in ((ALIASES.get(t) or {}).get(k) for k in ("search", "us", "elo")) if x]:
+                    deep.add(" ".join(allgames.norm(n)))
+        allgames.build(DATA, NOW, deep)
+        allgames.fetch_details(DATA, NOW)
+    except Exception as e:
+        log(f"Alle Spiele übersprungen: {e}")
+
+    # 6) Basketball, Eishockey, Handball (siehe multisport.py)
+    try:
+        import multisport
+        multisport.collect(DATA, NOW, hours_since)
+        multisport.build(DATA, NOW)
+    except Exception as e:
+        log(f"Weitere Sportarten übersprungen: {e}")
+
+    # 7) Was die Welt setzt: Prognosemärkte (siehe world.py)
+    try:
+        import world
+        world.run(DATA, NOW, hours_since)
+    except Exception as e:
+        log(f"Welt-Tipp übersprungen: {e}")
+
+    # 8) Offizielle US-Daten: NBA und NHL (siehe usapis.py)
+    try:
+        import usapis
+        st_ = usapis.run(DATA, NOW)
+        bad_ = [k for k, v in st_.items() if isinstance(v, str)]
+        STATUS["US-Daten (ESPN, NHL)"] = {"ok": not bad_, "state": "ok" if not bad_ else "fehler" if len(bad_) == len(st_) else "teilweise",
+                                          "info": ", ".join(f"{k}: {v}" for k, v in st_.items())[:160]}
+    except Exception as e:
+        STATUS["US-Daten (ESPN, NHL)"] = {"ok": False, "state": "fehler", "info": str(e)[:120]}
+        log(f"US-Daten übersprungen: {e}")
+
+    # 9) Tennis (eigene Quellen und eigenes Modell, siehe tennis.py)
     try:
         import tennis
         tennis.run(DATA, NOW, meta, hours_since)
@@ -700,6 +792,7 @@ def main():
 
     meta["run"] = NOW.isoformat(timespec="minutes")
     save_json(DATA / "meta.json", meta)
+    write_status()
 
 
 if __name__ == "__main__":
