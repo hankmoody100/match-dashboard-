@@ -86,3 +86,26 @@ Einstellbar: Tag, Anzahl, Mindest-/Höchstquote, Datenlage, Sportarten. Je Spiel
 ## Echte Quoten
 bet365 kostenlos für die Top-Ligen (football-data). bet365 und Interwetten für alle Sportarten über Odds-API.io,
 sobald das GitHub-Secret ODDS_API_IO_KEY hinterlegt ist (kostenpflichtig, Tarif Solo).
+
+## Sprache
+Schalter DE | EN oben. In Englisch wird die gesamte Oberfläche übersetzt (Datum und Zahlen im englischen Format). Die Wahl wird im Browser gespeichert.
+News werden je Team auf Deutsch und Englisch gesammelt und lassen sich im Spielblatt nach Sprache und Thema (Personal, Aufstellung, Trainer) filtern.
+
+## Europacup (Champions League, Europa League, Conference League)
+Über ESPN (zuverlässig von Servern aus), bewertet mit ClubElo. Pro Spiel: Startelf und Formation (ab ca. 90 Min. vor Anpfiff), Presse-Vorbericht und Artikel.
+
+## Rückblick (scripts/recs.py)
+Die offiziellen Tages-Empfehlungen werden bei jedem Lauf festgehalten, bis zum Anpfiff aktualisiert, dann eingefroren und
+nach Spielende automatisch abgerechnet (data/recs.json, 21 Tage). Bereich „📈 Rückblick“ oben.
+
+## Direktlinks
+Pro Spiel: X-Live-Suche, Blogabet, Covers (US-Sport), Reddit, Google News. Automatisch einlesen geht dort nicht (Login, Bezahlschranke, Nutzungsbedingungen).
+
+## Sortierung
+Alle Spiel-Listen starten chronologisch. Top-10-Listen wählen die besten Tipps aus und zeigen sie nach Uhrzeit.
+
+## Tages-Check (jeden Tag wird der Vortag geprüft)
+Sobald alle Ergebnisse eines Tages da sind, wertet recs.py ihn kritisch aus: Trefferquote gegen Erwartung mit Zufallsbereich,
+Aufschlüsselung nach Sportart, Tipp-Art und Weltmarkt, die größten Fehlgriffe. Weicht eine Tipp-Art über 14 Tage (mind. 12 Tipps)
+deutlich und mehr als der Zufall erklärt von der Erwartung ab, wird sie schwächer gereiht (−3) bzw. leicht bevorzugt (+1,5).
+Das gilt für die offiziellen Empfehlungen und für Best of the Day.
