@@ -492,7 +492,7 @@ def run(data_dir, now, meta, hours_since):
     for e in all_events:
         if e["start"] < now.isoformat():
             continue
-        if e["start"] < now.isoformat():
+        if e["start"] < now.isoformat() or "utr" in (e.get("title", "") + " " + e.get("lv", "")).lower():
             continue
         a = names.resolve(e["a"]) or e["a"]
         b = names.resolve(e["b"]) or e["b"]
@@ -632,6 +632,8 @@ def fetch_sofascore(now, days=2):
                 tour_ = ev.get("tournament") or {}
                 cat = (tour_.get("category") or {}).get("name", "")
                 ut = tour_.get("uniqueTournament") or {}
+                if "utr" in (cat + " " + tour_.get("name", "") + " " + (ut.get("name") or "")).lower():
+                    continue            # UTR-Pro-Turniere werden nicht gebraucht
                 tr, lv = level_of(cat + " " + tour_.get("name", ""), ht.get("gender", ""))
                 start = dt.datetime.fromtimestamp(ev.get("startTimestamp", 0), dt.timezone.utc).isoformat()
                 out.append({"tour": tr, "lv": lv, "title": ut.get("name") or tour_.get("name", ""), "start": start,

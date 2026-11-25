@@ -31,7 +31,7 @@ UA = {"User-Agent": "tendenz-board/2.0 (privates Dashboard)"}
 
 # Takt je Quelle (Stunden)
 EVERY = {"results": 3, "elo": 2, "news_team": 3}
-NEWS_BUDGET = 40      # max. Teams pro Lauf
+NEWS_BUDGET = 30      # max. Teams pro Lauf (je Team 2 Abfragen: Deutsch und Englisch)
 GEO_BUDGET = 25       # max. Ortssuchen pro Lauf
 NEWS_DAYS_AHEAD = 4   # News nur für Spiele der nächsten Tage
 
@@ -105,7 +105,9 @@ def write_status():
               ("Basketball, Eishockey, Handball", "Spiele bewertet", "Weitere Sportarten übersprungen"),
               ("Weltmarkt (Polymarket, Kalshi)", "[Welt-Tipp]", "Welt-Tipp übersprungen"),
               ("Tennis", "[Tennis]", "Tennis übersprungen"),
-              ("bet365 / Interwetten (Odds-API.io)", "Spiele mit bet365", "Buchmacher-Quoten übersprungen")]
+              ("bet365 / Interwetten (Odds-API.io)", "Spiele mit bet365", "Buchmacher-Quoten übersprungen"),
+              ("ESPN (Europacup, Aufstellungen, Presse)", "ESPN-Spielberichte", "ESPN Spielbericht"),
+              ("Rückblick (Empfehlungen)", "[Rückblick]", "Rückblick übersprungen")]
     out = {}
     for name, ok_word, bad_word in checks:
         bad = [l for l in lines if bad_word in l]
@@ -550,34 +552,38 @@ KW_EN = '(injury OR injured OR ruled OR suspended OR suspension OR doubt OR line
 
 
 def fetch_news(league, team):
+    """Schlagzeilen der letzten 3 Tage auf Deutsch und Englisch, jede Meldung mit Sprachkennung."""
     name = alias(team, "search") or team
-    if league in GERMAN:
-        q, params = f'"{name}" {KW_DE} when:3d', "hl=de&gl=AT&ceid=AT:de"
-    else:
-        q, params = f'"{name}" {KW_EN} when:3d', "hl=en-GB&gl=GB&ceid=GB:en"
-    url = f"https://news.google.com/rss/search?q={urllib.parse.quote(q)}&{params}"
-    r = http_get(url, timeout=20, tries=2)
-    if r is None:
-        return None
-    try:
-        root = ET.fromstring(r.content)
-    except ET.ParseError:
-        return None
-    items = []
-    for it in root.iter("item"):
-        title = (it.findtext("title") or "").strip()
-        src = (it.findtext("source") or "").strip()
-        if src and title.endswith(" - " + src):
-            title = title[: -len(src) - 3]
-        pub = it.findtext("pubDate") or ""
+    items, seen, any_ok = [], set(), False
+    for lang, kw, params in (("de", KW_DE, "hl=de&gl=AT&ceid=AT:de"), ("en", KW_EN, "hl=en-GB&gl=GB&ceid=GB:en")):
+        q = f'"{name}" {kw} when:3d'
+        r = http_get(f"https://news.google.com/rss/search?q={urllib.parse.quote(q)}&{params}", timeout=20, tries=2)
+        if r is None:
+            continue
         try:
-            pub_iso = dt.datetime.strptime(pub, "%a, %d %b %Y %H:%M:%S %Z").replace(
-                tzinfo=dt.timezone.utc).isoformat(timespec="minutes")
-        except ValueError:
-            pub_iso = ""
-        items.append({"title": title, "link": it.findtext("link") or "", "source": src, "date": pub_iso})
+            root = ET.fromstring(r.content)
+        except ET.ParseError:
+            continue
+        any_ok = True
+        for it in root.iter("item"):
+            title = (it.findtext("title") or "").strip()
+            src = (it.findtext("source") or "").strip()
+            if src and title.endswith(" - " + src):
+                title = title[: -len(src) - 3]
+            if title.lower() in seen:
+                continue
+            seen.add(title.lower())
+            pub = it.findtext("pubDate") or ""
+            try:
+                pub_iso = dt.datetime.strptime(pub, "%a, %d %b %Y %H:%M:%S %Z").replace(tzinfo=dt.timezone.utc).isoformat(timespec="minutes")
+            except ValueError:
+                pub_iso = ""
+            items.append({"title": title, "link": it.findtext("link") or "", "source": src, "date": pub_iso, "lang": lang})
+        time.sleep(0.6)
+    if not any_ok:
+        return None
     items.sort(key=lambda x: x["date"], reverse=True)
-    return items[:6]
+    return items[:12]
 
 
 def update_news(fixtures):
@@ -760,6 +766,7 @@ def main():
                     deep.add(" ".join(allgames.norm(n)))
         allgames.build(DATA, NOW, deep)
         allgames.fetch_details(DATA, NOW)
+        allgames.fetch_espn_details(DATA, NOW)
     except Exception as e:
         log(f"Alle Spiele übersprungen: {e}")
 
@@ -802,6 +809,13 @@ def main():
         tennis.run(DATA, NOW, meta, hours_since)
     except Exception as e:
         log(f"Tennis übersprungen: {e}")
+
+    # 11) Empfehlungen festhalten und abrechnen (siehe recs.py)
+    try:
+        import recs
+        recs.run(DATA, NOW)
+    except Exception as e:
+        log(f"Rückblick übersprungen: {e}")
 
     meta["run"] = NOW.isoformat(timespec="minutes")
     save_json(DATA / "meta.json", meta)

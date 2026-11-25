@@ -80,12 +80,20 @@ def _ev(ev, src="sofascore"):
             "hs": (ev.get("homeScore") or {}).get("current"), "as": (ev.get("awayScore") or {}).get("current"), "src": src}
 
 
-def _espn(now):
+# Vereinsbewerbe über ESPN (zuverlässig von Servern aus): Slug -> (Länderspiel?, Land/Region)
+ESPN_CLUB = {"uefa.champions": "Europe", "uefa.europa": "Europe", "uefa.europa.conf": "Europe", "uefa.super_cup": "Europe",
+             "conmebol.libertadores": "South America", "conmebol.sudamericana": "South America", "concacaf.champions": "North America",
+             "afc.champions": "Asia", "fifa.cwc": "World"}
+
+
+def _espn(now, past_days=1):
+    """ESPN-Spielplan und Ergebnisse: Länderspiele und internationale Vereinsbewerbe."""
     out = []
-    span = f"{now:%Y%m%d}-{(now + dt.timedelta(days=7)):%Y%m%d}"
-    for slug in ESPN_SLUGS:
+    span = f"{(now - dt.timedelta(days=past_days)):%Y%m%d}-{(now + dt.timedelta(days=7)):%Y%m%d}"
+    slugs = [(s, True, "International") for s in ESPN_SLUGS] + [(s, False, c) for s, c in ESPN_CLUB.items()]
+    for slug, nat, region in slugs:
         try:
-            r = requests.get(f"https://site.api.espn.com/apis/site/v2/sports/soccer/{slug}/scoreboard", params={"dates": span}, timeout=30)
+            r = requests.get(f"https://site.api.espn.com/apis/site/v2/sports/soccer/{slug}/scoreboard", params={"dates": span, "limit": 300}, timeout=30)
             if r.status_code != 200:
                 continue
             j = r.json()
@@ -96,14 +104,62 @@ def _espn(now):
                 if "home" not in teams or "away" not in teams:
                     continue
                 st = (ev.get("status") or {}).get("type") or {}
-                out.append({"id": f"espn{ev.get('id')}", "start": ev.get("date", "").replace("Z", ":00+00:00") if len(ev.get("date", "")) == 17 else ev.get("date", ""),
-                            "country": "International", "comp": name, "h": teams["home"]["team"].get("displayName", ""),
-                            "a": teams["away"]["team"].get("displayName", ""), "hid": None, "aid": None, "nat": True, "youth": False,
-                            "status": "notstarted" if st.get("state") == "pre" else "finished" if st.get("completed") else "other",
-                            "hs": None, "as": None, "src": "espn"})
+                fin = bool(st.get("completed"))
+                d = ev.get("date", "")
+                start = d.replace("Z", ":00+00:00") if len(d) == 17 else d.replace("Z", "+00:00")
+                sc = lambda c: int(float(c.get("score"))) if fin and c.get("score") not in (None, "") else None
+                out.append({"id": f"espn{ev.get('id')}", "espn": slug, "start": start, "country": region, "comp": name,
+                            "h": teams["home"]["team"].get("displayName", ""), "a": teams["away"]["team"].get("displayName", ""),
+                            "hid": None, "aid": None, "nat": nat, "youth": False,
+                            "status": "notstarted" if st.get("state") == "pre" else "finished" if fin else "other",
+                            "hs": sc(teams["home"]), "as": sc(teams["away"]), "src": "espn"})
         except Exception as e:
             log(f"ESPN {slug}: {e}")
     return out
+
+
+def fetch_espn_details(data_dir, now):
+    """ESPN-Spielbericht vor dem Anpfiff: Aufstellung (ab ca. 1 Stunde vorher), Formation, Presseartikel."""
+    data_dir = Path(data_dir)
+    sched = load(data_dir / "sf_schedule.json", {"events": []})
+    det = load(data_dir / "espn_details.json", {})
+    soon = (now + dt.timedelta(hours=48)).isoformat()
+    used = 0
+    for e in sorted([x for x in sched.get("events", []) if x.get("espn") and now.isoformat() <= x["start"] <= soon], key=lambda x: x["start"]):
+        if used >= 60:
+            break
+        k = e["id"]
+        d = det.get(k, {})
+        mins = (dt.datetime.fromisoformat(e["start"]) - now).total_seconds() / 60
+        if d and not (mins <= 100 and not d.get("confirmed")) and (now.timestamp() - d.get("ts", 0)) < 6 * 3600:
+            continue
+        try:
+            r = requests.get(f"https://site.api.espn.com/apis/site/v2/sports/soccer/{e['espn']}/summary", params={"event": k[4:]}, timeout=30)
+            used += 1
+            if r.status_code != 200:
+                continue
+            j = r.json()
+            lu = {}
+            for ro in j.get("rosters", []) or []:
+                side = ro.get("homeAway")
+                xi = [((p.get("athlete") or {}).get("displayName"), (p.get("position") or {}).get("abbreviation")) for p in ro.get("roster", []) if p.get("starter")]
+                if side:
+                    lu[side] = {"formation": ro.get("formation"), "xi": [x for x in xi if x[0]]}
+            news = []
+            for a in ((j.get("news") or {}).get("articles") or [])[:8]:
+                news.append({"title": a.get("headline"), "desc": (a.get("description") or "")[:240],
+                             "url": ((a.get("links") or {}).get("web") or {}).get("href"), "date": a.get("published")})
+            art = j.get("article") or {}
+            if art.get("headline"):
+                news.insert(0, {"title": art.get("headline"), "desc": (art.get("description") or "")[:240],
+                                "url": ((art.get("links") or {}).get("web") or {}).get("href"), "date": art.get("published"), "preview": True})
+            det[k] = {"t": now.isoformat(timespec="minutes"), "ts": now.timestamp(), "lineups": lu,
+                      "confirmed": all(len((lu.get(s) or {}).get("xi", [])) >= 11 for s in ("home", "away")), "news": news}
+        except Exception as ex:
+            log(f"ESPN Spielbericht {k}: {ex}")
+    keep = {x["id"] for x in sched.get("events", [])}
+    save(data_dir / "espn_details.json", {k: v for k, v in det.items() if k in keep})
+    log(f"ESPN-Spielberichte: {used} Abrufe, {sum(1 for v in det.values() if v.get('confirmed'))} mit bestätigter Aufstellung")
 
 
 def _tsdb_soccer(d):
@@ -166,7 +222,11 @@ def fetch_schedule(data_dir, now, hours_since):
             except Exception as ex:
                 log(f"TheSportsDB {d}: {ex}")
     espn = _espn(now)
-    events += [e for e in espn if e["status"] == "notstarted"]
+    events += [e for e in espn if e["status"] == "notstarted" and e["start"] >= now.isoformat()]
+    for e in espn:
+        if e["status"] == "finished" and e["hs"] is not None and e["id"] not in seen_res:
+            results["rows"].append([e["id"], e["start"][:10], None, None, e["h"], e["a"], e["hs"], e["as"], e["country"], e["comp"], int(e["nat"]), 0])
+            seen_res.add(e["id"])
     cutoff = (now.date() - dt.timedelta(days=730)).isoformat()
     results["rows"] = [r for r in results["rows"] if r[1] >= cutoff]
     save(data_dir / "sf_results.json", results)
@@ -256,8 +316,21 @@ def _own_elo(results):
     return elo, n
 
 
+CLUB_ALIAS = {"paris saint germain": "Paris SG", "internazionale": "Inter", "inter milan": "Inter", "ac milan": "Milan", "atletico madrid": "Atletico",
+              "athletic club": "Bilbao", "borussia dortmund": "Dortmund", "bayer leverkusen": "Leverkusen", "bayern munich": "Bayern", "fc bayern munchen": "Bayern",
+              "manchester city": "Man City", "manchester united": "Man United", "tottenham hotspur": "Tottenham", "newcastle united": "Newcastle",
+              "sporting cp": "Sporting", "psv eindhoven": "PSV", "red bull salzburg": "Salzburg", "fc salzburg": "Salzburg", "club brugge": "Brugge",
+              "olympique marseille": "Marseille", "olympique de marseille": "Marseille", "olympique lyonnais": "Lyon", "as monaco": "Monaco",
+              "eintracht frankfurt": "Frankfurt", "vfb stuttgart": "Stuttgart", "sk sturm graz": "Sturm Graz", "fc barcelona": "Barcelona",
+              "real madrid": "Real Madrid", "aston villa": "Aston Villa", "fc porto": "Porto", "sl benfica": "Benfica", "celtic": "Celtic",
+              "feyenoord rotterdam": "Feyenoord", "galatasaray": "Galatasaray", "fenerbahce": "Fenerbahce", "rapid vienna": "Rapid Wien", "sk rapid": "Rapid Wien"}
+
+
 def _match(name, cands_norm, cutoff=0.8):
     nn = " ".join(norm(name))
+    al = CLUB_ALIAS.get(nn)
+    if al and " ".join(norm(al)) in cands_norm:
+        return cands_norm[" ".join(norm(al))]
     if nn in cands_norm:
         return cands_norm[nn]
     best, score = None, 0
@@ -292,7 +365,8 @@ def build(data_dir, now, deep_teams):
         if k_ in seen:
             continue
         seen.add(k_)
-        deep = " ".join(norm(e["h"])) in deep_teams and " ".join(norm(e["a"])) in deep_teams and not e["nat"]
+        cup = re.search(r"champions|europa|conference|cup|pokal|copa|coupe|coppa|taça|super|libertadores|sudamericana", e.get("comp", ""), re.I)
+        deep = " ".join(norm(e["h"])) in deep_teams and " ".join(norm(e["a"])) in deep_teams and not e["nat"] and not cup
         eh = ea = None
         q, basis = 0, "keine Daten"
         if e["nat"] and not e["youth"]:
